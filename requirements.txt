@@ -1,0 +1,18 @@
+pytictoc
+jupyter
+ipykernel
+
+pandas
+numpy
+matplotlib
+plotly
+
+astropy
+astroquery
+# astroML
+opencv-python
+scikit-learn
+# torch
+
+# Note: Ensure the following system dependency is installed:
+# sudo apt-get install libgl1-mesa-glx

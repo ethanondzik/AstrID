@@ -1,6 +1,16 @@
 # AstrID
 AstrID: A project focused on identifying and classifying astronomical objects using data from various space catalogs. Leveraging machine learning, AstrID aims to enhance our understanding of stars, galaxies, and other celestial phenomena.
 
+## Project Goals and Objectives
+The primary goal of AstrID is to develop a robust system for identifying and classifying various astronomical objects, such as stars and galaxies, using data from space catalogs. A stretch goal of the project is to identify potential black hole candidates using advanced machine learning techniques.
+
+## Features
+- **Data Retrieval**: Fetch high-resolution images and data from space catalogs like Hipparcos and 2MASS.
+- **Image Processing**: Process and visualize astronomical images with WCS overlays.
+- **Machine Learning**: Classify different types of stars and other celestial objects.
+- **Black Hole Identification**: (Stretch Goal) Identify potential black hole candidates.
+
+
 ## Instructions:
 
 ### IPYNB Installation

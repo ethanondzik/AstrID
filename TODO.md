@@ -1,6 +1,8 @@
 # TODO
 
 ## Features
+- [ ] Develop a dataset of 100 images
+- [ ] Develop a list of stars in each image in the dataset
 - [ ] Implement advanced machine learning models for star classification
 - [ ] Integrate additional space catalogs for more comprehensive data
 - [ ] Develop a user-friendly interface for data visualization

@@ -9,9 +9,9 @@ plotly
 
 astropy
 astroquery
-# astroML
 opencv-python
 scikit-learn
+# astroML
 # torch
 
 # Note: Ensure the following system dependency is installed:

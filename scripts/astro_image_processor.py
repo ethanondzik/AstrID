@@ -1,10 +1,16 @@
-import numpy as np
+import sys
+import os
+import random
+from urllib.error import HTTPError
 from astropy.io import fits
-import matplotlib.pyplot as plt
-from astroquery.skyview import SkyView
+from astropy.table import Table
 from astropy.coordinates import SkyCoord
+from astroquery.skyview import SkyView
+from astroquery.vizier import Vizier
 import astropy.units as u
 from astropy.wcs import WCS
+import matplotlib.pyplot as plt
+import numpy as np
 import cv2
 
 class AstroImageProcessor:
@@ -26,6 +32,10 @@ class AstroImageProcessor:
         A dictionary to store the fetched images.
     headers : dict
         A dictionary to store the headers of the fetched images.
+    fits : HDUList
+        The FITS file object.
+    star_data : Table
+        The star data table.
 
     Methods:
     -------
@@ -47,55 +57,242 @@ class AstroImageProcessor:
         Processes the images using OpenCV's edge detection and returns the processed images.
     """
 
-    def __init__(self, coordinates, surveys, radius=0.15):
+    def __init__(self, coordinates=None, surveys=None, radius=0.15, fits_filename='output.fits'):
+        if coordinates is None:
+            coordinates = self.generate_random_coordinates()
         self.coordinates = coordinates
-        self.surveys = surveys
+        self.surveys = surveys if surveys else ['DSS']
         self.radius = radius * u.deg if isinstance(radius, (int, float)) else radius
         self.images = {}
         self.headers = {}
+        self.fits_filename = fits_filename  # Initialize self.fits_filename with the provided filename
+        print(f"Initialized self.fits_filename: {self.fits_filename} (type: {type(self.fits_filename).__name__})")  # Debug statement
+        self.star_data = None
+
+        # Fetch images and save to FITS file
+        self.fetch_images()
+        self.save_to_fits(self.fits_filename)
+        self.load_fits_as_object()
+
+    def get_available_surveys(self) -> list:
+        """
+        Returns a list of available surveys from SkyView.
+
+        Returns:
+        -------
+        available_surveys : list
+            A list of available surveys from SkyView.
+        """
+        available_surveys = SkyView.list_surveys()
+        return available_surveys
+
+    def generate_random_coordinates(self):
+        """
+        Generate random coordinates within the range of available surveys from SkyView.
+
+        Returns:
+        -------
+        coordinates : SkyCoord
+            The generated random coordinates.
+        """
+        ra = random.uniform(0, 360)
+        dec = random.uniform(-90, 90)
+        coordinates = SkyCoord(ra, dec, unit='deg', frame='icrs')
+        return coordinates
 
     def fetch_images(self):
         """
         Fetches images from the specified surveys and stores them in the images dictionary.
         """
         for survey in self.surveys:
-            image_list = SkyView.get_images(position=self.coordinates, survey=[survey], radius=self.radius)
-            self.images[survey] = image_list[0][0].data
-            self.headers[survey] = image_list[0][0].header
+            while True:
+                try:
+                    image_list = SkyView.get_images(position=self.coordinates, survey=[survey], radius=self.radius)
+                    self.images[survey] = image_list[0][0].data
+                    self.headers[survey] = image_list[0][0].header
+                    break  # Exit the loop if the image is fetched successfully
+                except HTTPError as e:
+                    if e.code == 404:
+                        print(f"HTTP Error 404: Not Found for survey {survey} at coordinates {self.coordinates}. Generating new coordinates...")
+                        self.coordinates = self.generate_random_coordinates()
+                    else:
+                        raise e  # Re-raise the exception if it's not a 404 error
+
+
+    def retrieve_images_from_vizier(self, catalog_name, column_name, image_survey):
+        """
+        Retrieves images from the Vizier catalog based on the coordinates and stores them in the images dictionary.
+
+        Parameters:
+        ----------
+        catalog_name : str
+            The name of the Vizier catalog to retrieve data from.
+        column_name : str
+            The column name containing the image name in the Vizier catalog.
+        image_survey : str
+            The name of the survey to fetch images from.
+        """
+        vizier = Vizier(columns=[column_name])
+        result = vizier.query_region(self.coordinates, radius=self.radius, catalog=catalog_name)
+        image_names = result[0][column_name]
+        for image_name in image_names:
+            image_list = SkyView.get_images(position=self.coordinates, survey=[image_survey], radius=self.radius)
+            self.images[image_name] = image_list[0][0].data
+            self.headers[image_name] = image_list[0][0].header
+
+    def retrieve_star_data(self, catalog='I/239/hip_main', max_retries=10):
+        """
+        Retrieve star data for the given coordinates using Vizier.
+
+        Returns:
+        -------
+        star_data : Table
+            A table containing the star data.
+        """
+        vizier = Vizier(columns=['*', '+_r'])
+        retries = 0
+        
+        while retries < max_retries:
+            try:
+                result = vizier.query_region(self.coordinates, radius=self.radius, catalog=catalog)
+                if len(result) > 0:
+                    self.star_data = result[0]
+                    return self.star_data
+                else:
+                    print(f"No star data found for coordinates {self.coordinates}. Generating new coordinates...")
+                    self.coordinates = self.generate_random_coordinates()
+                    retries += 1
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                self.coordinates = self.generate_random_coordinates()
+                retries += 1
+
+        raise RuntimeError(f"Failed to retrieve star data after {max_retries} retries.")
+    
+    
+    def get_coordinates(self):
+        """
+        Get the current coordinates.
+
+        Returns:
+        -------
+        coordinates : SkyCoord
+            The current coordinates.
+        """
+        return self.coordinates
+    
+    def append_star_data_to_fits(self):
+        """
+        Append or replace star data in the FITS file as a new extension.
+        """
+        if not isinstance(self.fits_filename, str):
+            raise TypeError(f"self.fits_filename should be a string representing the filename, but got {type(self.fits_filename).__name__}.")
+        
+        # Check if the file exists
+        if not os.path.exists(self.fits_filename):
+            # Create a new FITS file with a primary HDU
+            primary_hdu = fits.PrimaryHDU()
+            hdul = fits.HDUList([primary_hdu])
+            hdul.writeto(self.fits_filename)
+        
+        with fits.open(self.fits_filename, mode='update') as hdul:
+            # Check if 'STAR_DATA' extension already exists
+            if 'STAR_DATA' in hdul:
+                # Find the index of the existing 'STAR_DATA' extension
+                star_data_index = [i for i, hdu in enumerate(hdul) if hdu.name == 'STAR_DATA'][0]
+                # Replace the existing 'STAR_DATA' extension
+                hdul[star_data_index] = fits.BinTableHDU(self.star_data, name='STAR_DATA')
+            else:
+                # Append the new 'STAR_DATA' extension
+                star_hdu = fits.BinTableHDU(self.star_data, name='STAR_DATA')
+                hdul.append(star_hdu)
+            hdul.flush()
+    
+    def get_star_data_table_from_fits(self, filename):
+        """
+        Get star data from the FITS file.
+    
+        Parameters:
+        ----------
+        filename : str
+            The name of the FITS file to get the star data from.
+        """
+        with fits.open(filename) as hdul:
+            self.star_data = hdul['STAR_DATA'].data
+
+        # Convert the star data to an astropy Table
+        star_data_table = Table(self.star_data)
+
+        return star_data_table
+    
+    def print_star_data_table_from_fits(self, filename):
+        """
+        Print the star data from the FITS file in a formatted table.
+        """
+        # Get star data from the FITS file.
+        with fits.open(filename) as hdul:
+            self.star_data = hdul['STAR_DATA'].data
+
+        # Convert the star data to an astropy Table
+        star_data_table = Table(self.star_data)
+
+        # Print the table
+        print(star_data_table)
+
 
     def save_to_fits(self, filename):
         """
-        Saves the fetched images to a FITS file.
-
-        Parameters:
-        ----------
-        filename : str
-            The name of the FITS file to save the images to.
+        Save the fetched images to a FITS file.
         """
-        primary_hdu = fits.PrimaryHDU()
-        hdus = [primary_hdu]
-        for survey in self.surveys:
-            hdu = fits.ImageHDU(self.images[survey], header=self.headers[survey], name=survey)
+        hdus = [fits.PrimaryHDU()]
+        for survey, image in self.images.items():
+            hdu = fits.ImageHDU(image, name=survey)
             hdus.append(hdu)
+        
         hdul = fits.HDUList(hdus)
-        hdul.writeto(filename, overwrite=True)
+        hdul.writeto('../data/raw/' + filename, overwrite=True)
+        self.fits_filename = filename  # Ensure self.fits_filename is updated
 
-    def load_from_fits(self, filename):
+    def get_star_data_from_fits(self, filename):
         """
-        Loads images from a FITS file into the images dictionary.
+        Get star data from the FITS file.
 
         Parameters:
         ----------
         filename : str
-            The name of the FITS file to load the images from.
+            The name of the FITS file to get the star data from.
         """
-        hdul = fits.open(filename)
-        for hdu in hdul[1:]:
-            self.images[hdu.name] = hdu.data
-            self.headers[hdu.name] = hdu.header
-        hdul.close()
+        with fits.open('../data/raw/' + filename) as hdul:
+            if 'STAR_DATA' in hdul:
+                self.star_data = hdul['STAR_DATA'].data
+            else:
+                raise KeyError("Extension 'STAR_DATA' not found.")
 
-    def display_fits_info(self, filename):
+
+    def save_to_fits(self, filename):
+        """
+        Save the fetched images to a FITS file.
+        """
+        hdus = [fits.PrimaryHDU()]
+        for survey, image in self.images.items():
+            hdu = fits.ImageHDU(image, name=survey)
+            hdus.append(hdu)
+        
+        hdul = fits.HDUList(hdus)
+        hdul.writeto('../data/raw/' + filename, overwrite=True)
+        self.fits_filename = filename  # Ensure self.fits_filename is updated
+
+    def load_fits_as_object(self):
+        """
+        Load the FITS file as an object.
+        """
+        self.fits = fits.open('../data/raw/' + self.fits_filename)
+        # for hdu in hdul[1:]:
+        #     self.images[hdu.name] = hdu.data
+        #     self.headers[hdu.name] = hdu.header
+        # hdul.close()
+
+    def display_fits_info(self, filename=None):
         """
         Displays information about the FITS file.
 
@@ -104,22 +301,41 @@ class AstroImageProcessor:
         filename : str
             The name of the FITS file to display information about.
         """
-        hdul = fits.open(filename)
+        if filename is None:
+            hdul = self.fits
+        else:
+            hdul = fits.open(filename)
         hdul.info()
         hdul.close()
 
     def display_images(self):
         """
-        Displays the fetched images in a 2x2 grid.
+        Displays the fetched images in a grid layout based on the number of images.
         """
-        fig, axs = plt.subplots(2, 2, figsize=(12, 12), subplot_kw={'projection': WCS(self.headers[self.surveys[0]])})
+        num_images = len(self.images)
+        
+        if num_images == 1:
+            fig, axs = plt.subplots(1, 1, figsize=(6, 6), subplot_kw={'projection': WCS(self.headers[self.surveys[0]])})
+            axs = [axs]  # Make axs iterable
+        elif num_images == 2:
+            fig, axs = plt.subplots(1, 2, figsize=(12, 6), subplot_kw={'projection': WCS(self.headers[self.surveys[0]])})
+        elif num_images == 3:
+            fig, axs = plt.subplots(1, 3, figsize=(18, 6), subplot_kw={'projection': WCS(self.headers[self.surveys[0]])})
+        else:
+            fig, axs = plt.subplots(2, 2, figsize=(12, 12), subplot_kw={'projection': WCS(self.headers[self.surveys[0]])})
+        
+        axs = axs.flatten() if num_images > 1 else axs
+
         for i, survey in enumerate(self.surveys):
-            ax = axs[i // 2, i % 2]
-            ax.imshow(self.images[survey], cmap='gray', origin='lower')
-            ax.set_title(f'{survey} Image')
-            ax.coords.grid(color='white', ls='dotted')
-            ax.set_xlabel('RA', fontsize=8)
-            ax.set_ylabel('Dec', fontsize=8)
+            if survey in self.images:
+                ax = axs[i]
+                ax.imshow(self.images[survey], cmap='gray', origin='lower')
+                ax.set_title(f'{survey} Image')
+                ax.coords.grid(color='white', ls='dotted')
+                ax.set_xlabel('RA', fontsize=8)
+                ax.set_ylabel('Dec', fontsize=8)
+        
+        plt.tight_layout()
         plt.show()
 
     def display_unprocessed_and_processed_images(self, images=None, processed_images=None):
@@ -266,13 +482,17 @@ class AstroImageProcessor:
 
 # Example usage
 if __name__ == "__main__":
+    # Generate initial random coordinates
     coordinates = SkyCoord("18h18m48s -13d49m00s", frame='icrs')
     surveys = ['DSS', 'DSS1 Blue', 'DSS2 Red', 'WISE 3.4']
-    processor = AstroImageProcessor(coordinates, surveys)
+    processor = AstroImageProcessor(coordinates, surveys, radius=0.15)
+
+    # Fetch images with error handling and retry logic
     processor.fetch_images()
-    processor.save_to_fits('eagle_nebula_images.fits')
+    processor.save_to_fits('random_coordinates_images.fits')
+    processor.add_star_data_to_fits('random_coordinates_images.fits')
     processor.display_images()
 
     # Load from FITS and process with OpenCV
-    processor.load_from_fits('eagle_nebula_images.fits')
+    processor.load_from_fits('random_coordinates_images.fits')
     processor.display_unprocessed_and_processed_images()

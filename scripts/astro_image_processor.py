@@ -56,6 +56,7 @@ class AstroImageProcessor:
     process_with_opencv():
         Processes the images using OpenCV's edge detection and returns the processed images.
     """
+    DATA_DIR = '../data/raw/'
 
     def __init__(self, coordinates=None, surveys=None, radius=0.15, fits_filename='output.fits'):
         if coordinates is None:
@@ -65,14 +66,10 @@ class AstroImageProcessor:
         self.radius = radius * u.deg if isinstance(radius, (int, float)) else radius
         self.images = {}
         self.headers = {}
-        self.fits_filename = fits_filename  # Initialize self.fits_filename with the provided filename
-        print(f"Initialized self.fits_filename: {self.fits_filename} (type: {type(self.fits_filename).__name__})")  # Debug statement
         self.star_data = None
 
-        # Fetch images and save to FITS file
-        self.fetch_images()
-        self.save_to_fits(self.fits_filename)
-        self.load_fits_as_object()
+        # Fetch images, retrieve star data, and save to FITS file
+        self.fetch_and_save_data_pipeline()
 
     def get_available_surveys(self) -> list:
         """
@@ -140,35 +137,28 @@ class AstroImageProcessor:
             self.images[image_name] = image_list[0][0].data
             self.headers[image_name] = image_list[0][0].header
 
-    def retrieve_star_data(self, catalog='I/239/hip_main', max_retries=10):
+    def retrieve_star_data(self, catalog='I/239/hip_main'):
         """
         Retrieve star data for the given coordinates using Vizier.
-
+    
         Returns:
         -------
         star_data : Table
             A table containing the star data.
         """
         vizier = Vizier(columns=['*', '+_r'])
-        retries = 0
         
-        while retries < max_retries:
-            try:
-                result = vizier.query_region(self.coordinates, radius=self.radius, catalog=catalog)
-                if len(result) > 0:
-                    self.star_data = result[0]
-                    return self.star_data
-                else:
-                    print(f"No star data found for coordinates {self.coordinates}. Generating new coordinates...")
-                    self.coordinates = self.generate_random_coordinates()
-                    retries += 1
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                self.coordinates = self.generate_random_coordinates()
-                retries += 1
-
-        raise RuntimeError(f"Failed to retrieve star data after {max_retries} retries.")
-    
+        try:
+            result = vizier.query_region(self.coordinates, radius=self.radius, catalog=catalog)
+            if len(result) > 0:
+                self.star_data = result[0]
+                return self.star_data
+            else:
+                print(f"No star data found for coordinates {self.coordinates}.")
+                return None
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
     
     def get_coordinates(self):
         """
@@ -180,22 +170,70 @@ class AstroImageProcessor:
             The current coordinates.
         """
         return self.coordinates
-    
-    def append_star_data_to_fits(self):
+
+    def fetch_and_save_data_pipeline(self, filename, max_attempts=10):
+        """
+        Combines the functionality of fetching images, retrieving star data, and saving to FITS file.
+        Retries the process with new coordinates if an HTTP 404 error occurs.
+
+        Parameters:
+        ----------
+        filename : str
+            The name of the FITS file to save the data to.
+        max_attempts : int
+            The maximum number of attempts to retry the process with new coordinates.
+        """
+        attempts = 0
+        while attempts < max_attempts:
+            try:
+                # Generate random coordinates
+                self.coordinates = self.generate_random_coordinates()
+                
+                # Fetch images
+                self.fetch_images()
+                
+                # Retrieve star data
+                star_data = self.retrieve_star_data()
+                
+                # Save images and star data to FITS file
+                self.save_to_fits(filename)
+                self.append_star_data_to_fits(filename)
+                
+                # Exit the loop if successful
+                return
+            except HTTPError as e:
+                if e.code == 404:
+                    print(f"HTTP Error 404: Not Found. Generating new coordinates and retrying... (Attempt {attempts + 1}/{max_attempts})")
+                    attempts += 1
+                else:
+                    raise e  # Re-raise the exception if it's not a 404 error
+            except Exception as e:
+                print(f"An error occurred: {e}. Generating new coordinates and retrying... (Attempt {attempts + 1}/{max_attempts})")
+                attempts += 1
+        
+        raise RuntimeError(f"Failed to fetch and save data after {max_attempts} attempts.")
+
+
+    def append_star_data_to_fits(self, filename):
         """
         Append or replace star data in the FITS file as a new extension.
+
+        Parameters:
+        ----------
+        filename : str
+            The name of the FITS file to append the star data to.
         """
-        if not isinstance(self.fits_filename, str):
-            raise TypeError(f"self.fits_filename should be a string representing the filename, but got {type(self.fits_filename).__name__}.")
+        if not isinstance(filename, str):
+            raise TypeError(f"filename should be a string representing the filename, but got {type(filename).__name__}.")
         
         # Check if the file exists
-        if not os.path.exists(self.fits_filename):
+        if not os.path.exists(filename):
             # Create a new FITS file with a primary HDU
             primary_hdu = fits.PrimaryHDU()
             hdul = fits.HDUList([primary_hdu])
-            hdul.writeto(self.fits_filename)
+            hdul.writeto(filename)
         
-        with fits.open(self.fits_filename, mode='update') as hdul:
+        with fits.open(filename, mode='update') as hdul:
             # Check if 'STAR_DATA' extension already exists
             if 'STAR_DATA' in hdul:
                 # Find the index of the existing 'STAR_DATA' extension
@@ -239,20 +277,6 @@ class AstroImageProcessor:
         # Print the table
         print(star_data_table)
 
-
-    def save_to_fits(self, filename):
-        """
-        Save the fetched images to a FITS file.
-        """
-        hdus = [fits.PrimaryHDU()]
-        for survey, image in self.images.items():
-            hdu = fits.ImageHDU(image, name=survey)
-            hdus.append(hdu)
-        
-        hdul = fits.HDUList(hdus)
-        hdul.writeto('../data/raw/' + filename, overwrite=True)
-        self.fits_filename = filename  # Ensure self.fits_filename is updated
-
     def get_star_data_from_fits(self, filename):
         """
         Get star data from the FITS file.
@@ -262,7 +286,7 @@ class AstroImageProcessor:
         filename : str
             The name of the FITS file to get the star data from.
         """
-        with fits.open('../data/raw/' + filename) as hdul:
+        with fits.open(filename) as hdul:
             if 'STAR_DATA' in hdul:
                 self.star_data = hdul['STAR_DATA'].data
             else:
@@ -279,18 +303,13 @@ class AstroImageProcessor:
             hdus.append(hdu)
         
         hdul = fits.HDUList(hdus)
-        hdul.writeto('../data/raw/' + filename, overwrite=True)
-        self.fits_filename = filename  # Ensure self.fits_filename is updated
+        hdul.writeto(filename, overwrite=True)
 
     def load_fits_as_object(self):
         """
         Load the FITS file as an object.
         """
-        self.fits = fits.open('../data/raw/' + self.fits_filename)
-        # for hdu in hdul[1:]:
-        #     self.images[hdu.name] = hdu.data
-        #     self.headers[hdu.name] = hdu.header
-        # hdul.close()
+        self.fits = fits.open('../data/raw/' + filename)
 
     def display_fits_info(self, filename=None):
         """
@@ -301,12 +320,8 @@ class AstroImageProcessor:
         filename : str
             The name of the FITS file to display information about.
         """
-        if filename is None:
-            hdul = self.fits
-        else:
-            hdul = fits.open(filename)
-        hdul.info()
-        hdul.close()
+        with fits.open(filename) as hdul:
+            hdul.info()
 
     def display_images(self):
         """

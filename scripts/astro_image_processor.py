@@ -511,3 +511,27 @@ if __name__ == "__main__":
     # Load from FITS and process with OpenCV
     processor.load_from_fits('random_coordinates_images.fits')
     processor.display_unprocessed_and_processed_images()
+
+
+
+
+
+
+
+
+            for star in stars_in_image: 
+
+            pixel_coords = getPixelCoordsFromStar(star, wcs)
+            pixel_mask[int(np.floor(pixel_coords[0]))][int(np.floor(pixel_coords[1]))] = 1
+
+            # print('PIXEL COORDS: ', pixel_coords)
+
+            Drawing_colored_circle = plt.Circle(( pixel_coords[0] , pixel_coords[1] ), 0.1, fill=False, edgecolor='Blue')
+            ax.add_artist( Drawing_colored_circle )
+            ax.set_title(f'{filename}.fits')
+            ax.set_xlabel('RA')
+            ax.set_ylabel('Dec')
+            ax.grid(color='white', ls='dotted')
+
+        ax.imshow(image_hdu.data, cmap='gray', origin='lower')
+        plt.show()

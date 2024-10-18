@@ -21,7 +21,7 @@ import pandas as pd
 plt.style.use(astropy_mpl_style)
 
 
-def save_plot_as_image(ax, filename, width=300, height=300):
+def save_plot_as_image(ax, filename, pixels=512):
     """
     Save the plot as an image file with specified dimensions.
 
@@ -31,10 +31,9 @@ def save_plot_as_image(ax, filename, width=300, height=300):
         The Axes object containing the plot.
     filename : str
         The filename for the saved image.
-    width : int
-        The width of the image in pixels.
-    height : int
-        The height of the image in pixels.
+    pixels : int
+        The width and height of the image in pixels.
+
     """
     plt.close('all')
     # Temporarily switch to the Agg backend
@@ -44,7 +43,7 @@ def save_plot_as_image(ax, filename, width=300, height=300):
     # Save the plot as an image file
     image_filename = filename.replace('.fits', '.png')
     fig = ax.figure
-    fig.set_size_inches(width / fig.dpi, height / fig.dpi)
+    fig.set_size_inches(pixels / fig.dpi, pixels / fig.dpi)
     plt.savefig(image_filename, format='png', bbox_inches='tight', pad_inches=0)
 
     plt.close('all')
@@ -71,7 +70,7 @@ def convert_image_to_fits(image_filename, fits_filename, hdu_name):
     image_data = cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE)
     
     # Resize the image to match the FITS dimensions if necessary
-    image_data = cv2.resize(image_data, (300, 300), interpolation=cv2.INTER_AREA)
+    image_data = cv2.resize(image_data, (512, 521), interpolation=cv2.INTER_AREA)
     
     # Create a new ImageHDU for the image data
     image_hdu = fits.ImageHDU(image_data, name=hdu_name)
@@ -129,7 +128,7 @@ def clean_dec_value(dec_value):
     return valid_chars.sub('', dec_value)
 
 
-def getStarData(catalog_type='II/246', iterations=1, filename='star'):
+def getStarData(catalog_type='II/246', iterations=1, filename='data'):
 
     # Create a new directory to store the
     if not os.path.exists('data'):
@@ -156,7 +155,7 @@ def getStarData(catalog_type='II/246', iterations=1, filename='star'):
 
 
                 # Fetch image data from SkyView
-                image_list = SkyView.get_images(position=coords, survey=['DSS'], radius=0.25 * u.deg)
+                image_list = SkyView.get_images(position=coords, survey=['DSS'], radius=0.25 * u.deg, pixels=512)
 
                 # Extract the image data from the list
                 image_hdu = image_list[0][0]
@@ -725,7 +724,3 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
 
     # Example usage
     # saveFitsImages('data1.fits')
-
-
-
-

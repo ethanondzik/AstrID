@@ -247,10 +247,10 @@ def getStarData(catalog_type='II/246', iterations=1, filename='data'):
         for star in stars_in_image: 
 
             pixel_coords = getPixelCoordsFromStar(star, wcs)
-            # pixel_mask[int(np.floor(pixel_coords[0]))][int(np.floor(pixel_coords[1]))] = 1
+            # pixel_mask[int(np.round(pixel_coords[0]))][int(np.round(pixel_coords[1]))] = 1
 
             # Ensure the pixel coordinates are within bounds
-            x, y = int(np.floor(pixel_coords[0])), int(np.floor(pixel_coords[1]))
+            x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < x_dim and 0 <= y < y_dim:
                 pixel_mask[x][y] = 1
 
@@ -428,6 +428,49 @@ def extract_star_catalog(file_path):
     # catalog = extract_star_catalog(file_path)
 
 
+def displayRawImage(file_path):
+    """
+    Display the raw image data from a FITS file.
+
+    Parameters:
+    ----------
+    filename : str
+        The path to the FITS file.
+    """
+    with fits.open(file_path) as hdul:
+        image_data = hdul[0].data
+
+    plt.figure(figsize=(10, 10))
+    plt.imshow(image_data, cmap='gray', origin='lower')
+    plt.title('Raw Image Data')
+    plt.xlabel('X Pixel')
+    plt.ylabel('Y Pixel')
+    plt.grid(False)
+    plt.show()
+
+def displayRawPixelMask(file_path):
+    """
+    Display the raw image data from a FITS file.
+
+    Parameters:
+    ----------
+    filename : str
+        The path to the FITS file.
+    """
+    with fits.open(file_path) as hdul:
+            image_hdu = hdul[0]
+            wcs = WCS(image_hdu.header)
+
+            pixel_mask = hdul['pixel_mask'].data
+
+    plt.figure(figsize=(10, 10))
+    plt.imshow(pixel_mask, cmap='gray', origin='lower')
+    plt.title('Raw Image Data')
+    plt.xlabel('X Pixel')
+    plt.ylabel('Y Pixel')
+    plt.grid(False)
+    plt.show()
+
 # Display the image with coords overlaid on top
 def displayImagePlot(file_path):
 
@@ -573,13 +616,13 @@ def displayPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
         for star in stars_in_image:
             pixel_coords = getPixelCoordsFromStar(star, wcs)
-            # pixel_mask[int(np.floor(pixel_coords[0]))][int(np.floor(pixel_coords[1]))] = 1
+            # pixel_mask[int(np.round(pixel_coords[0]))][int(np.round(pixel_coords[1]))] = 1
             # Ensure the pixel coordinates are within bounds
-            x, y = int(np.floor(pixel_coords[0])), int(np.floor(pixel_coords[1]))
+            x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < x_dim and 0 <= y < y_dim:
                 pixel_mask[x][y] = 1
 
-            Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 0.1, fill=False, edgecolor='Blue')
+            Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='Blue')
             ax.add_artist(Drawing_colored_circle)
 
         ax.set_title(f'{file_path}')
@@ -635,13 +678,13 @@ def getPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
         for star in stars_in_image:
             pixel_coords = getPixelCoordsFromStar(star, wcs)
-            # pixel_mask[int(np.floor(pixel_coords[0]))][int(np.floor(pixel_coords[1]))] = 1
+            # pixel_mask[int(np.round(pixel_coords[0]))][int(np.round(pixel_coords[1]))] = 1
             # Ensure the pixel coordinates are within bounds
-            x, y = int(np.floor(pixel_coords[0])), int(np.floor(pixel_coords[1]))
+            x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < x_dim and 0 <= y < y_dim:
                 pixel_mask[x][y] = 1
 
-            Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 0.1, fill=False, edgecolor='Blue')
+            Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='Blue')
             ax.add_artist(Drawing_colored_circle)
 
         ax.set_title(f'{file_path}')
@@ -706,9 +749,9 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
         axs[2].imshow(image_hdu.data, cmap='gray', origin='lower')
         for star in stars_in_image:
             pixel_coords = getPixelCoordsFromStar(star, wcs)
-            x, y = int(np.floor(pixel_coords[0])), int(np.floor(pixel_coords[1]))
+            x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < wcs.pixel_shape[0] and 0 <= y < wcs.pixel_shape[1]:
-                Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 0.1, fill=False, edgecolor='Blue')
+                Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='Blue')
                 axs[2].add_artist(Drawing_colored_circle)
         axs[2].set_title('Pixel Mask Overlay')
         axs[2].set_xlabel('RA')

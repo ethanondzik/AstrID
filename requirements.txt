@@ -11,12 +11,12 @@ astropy
 astroquery
 opencv-python
 scikit-learn
-# tensorflow
+tensorflow
 
 # If you want to use your GPU with tensorflow, follow the instructions at:
 # https://www.tensorflow.org/install/pip
 # Install this package instead of the one above:
-tensorflow[and-cuda]
+# tensorflow[and-cuda]
 
 # astroML
 # torch

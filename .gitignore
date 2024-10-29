@@ -168,3 +168,5 @@ cython_debug/
 
 # Fits files
 *.fits
+
+results/*

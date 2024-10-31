@@ -1,3 +1,36 @@
+import cv2
+import numpy as np
+import pandas as pd
+
+def stackImages(images):
+    stacked_images = np.array([np.stack([image, image, image], axis=-1) for image in images])
+
+    prepared_images = np.array(stacked_images)
+
+    return prepared_images
+
+
+def stackMasks(masks):
+    stacked_masks = np.array([np.expand_dims(mask, axis=-1) for mask in masks])
+    
+    prepared_masks = np.array(stacked_masks)
+
+    return prepared_masks
+    
+
+def normalizeImages(images):
+    # Find the minimum and maximum values in the dataset
+    min_val = np.min(images)
+    max_val = np.max(images)
+
+    # Apply min-max normalization
+    images_normalized = (images - min_val) / (max_val - min_val)
+
+    print(images_normalized.min(), images_normalized.max())  # Should be 0.0 and 1.0
+
+    return images_normalized
+
+
 def convert_to_grayscale(image):
     """
     Convert the input image to grayscale.

@@ -1,0 +1,26 @@
+
+Model: 2024_11_02-1519_200_unet_model.keras Model run at: 2024/11/02 15:19:41 By user: ethan
+Hyper-parameters:
+	input_shape: (512, 512, 3)
+	filters: [32, 64, 128, 256, 512]
+	kernel_size: (3, 3)
+	activation: relu
+	padding: same
+	initializer: <class 'keras.src.initializers.random_initializers.HeUniform'>
+	optimizer: adam
+	loss: binary_crossentropy
+	weights: {0: 1.0, 1: 5.0}
+	metrics: ['accuracy']
+	epochs: 1
+	batch_size: 4
+	early_stopping_patience: 10
+	test_size: 0.2
+	random_state: 0
+	seed: 42
+Loss and accuracy:
+    Training loss: 0.061623476445674896
+    Validation loss: 0.043809011578559875
+    Training accuracy: 0.9945709109306335
+    Validation accuracy: 0.9936471581459045
+
+    

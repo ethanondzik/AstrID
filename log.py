@@ -1,58 +1,40 @@
 # File: logging.py
 # Author: Ethan Ondzik
-# Last Changed: Nov 1, 2024
+# Last Changed: Nov 2, 2024
 
 import datetime
 import os
 import getpass
 
-def write_to_log():
-    log_file_name = 'log/run_model.txt'
+def write_to_log(model_history, model_hyperparameters, model_name):
+    log_file_name = 'log/model_runs.txt'
     
-    #with f open('log/run_model.txt')
-
     date = datetime.datetime.now()
-    date_string = date.strftime('%Y/%m/%d %H:%M:%S')
-    user_string = getpass.getuser() #should work for most OS
-    
-    #assuming hyperparameters are global
-    base_exponent = 5
-    filters = [2 ** (base_exponent + i) for i in range(5)]
-    he_uniform = 'he_uniform'
 
+    #date format ex: 2024/11/02 12:15:44
+    date_string = 'Model run at: ' + date.strftime('%Y/%m/%d %H:%M:%S')
+    user_string = 'By user: ' + getpass.getuser() #should work for windows, linux, and mac
 
-    hyperparameters = {
-        'input_shape': (512, 512, 3),
-        'filters': filters,
-        'kernel_size': (3, 3),
-        'activation': 'relu',
-        'padding': 'same',
-        # 'initializer': he_uniform(),
-        'initializer': he_uniform,
-        'optimizer': 'adam',
-        # 'loss': weightedBinaryCrossEntropy,
-        'loss': 'binary_crossentropy',
-        'weights' : {0 : 1.0, 1 : 5.0},
-        'metrics': ['accuracy'],
-        'epochs': 100,
-        'batch_size': 4,
-        'early_stopping_patience': 10,
-        'test_size': 0.2,
-        'random_state': 0,
-        'seed': 42
-    }
+    #format model history
+    history_string = f'''Loss and accuracy:
+    Training loss: {model_history.history['loss'][-1]}
+    Validation loss: {model_history.history['val_loss'][-1]}
+    Training accuracy: {model_history.history['accuracy'][-1]}
+    Validation accuracy: {model_history.history['val_accuracy'][-1]}\n
+    '''
 
+    #format hyperparamters
+    hyper_parameter_string = 'Hyper-parameters:\n'
+    for i, j in model_hyperparameters.items():
+        hyper_parameter_string += '\t' + str(i) + ': ' + str(j) + '\n'
+
+    #write information to log_file_name
     if not os.path.exists('log'):
         os.makedirs('log')
     
-
     with open(log_file_name, 'a') as log:
-        log.write('\n' + date_string + ' ' + user_string + '\n')
-        log.write(str(hyperparameters))
-
-
-
-if __name__ == '__main__':
-    write_to_log()
+        log.write('\n' + 'Model: ' + model_name + ' ' + date_string + ' ' + user_string + '\n')
+        log.write(hyper_parameter_string)
+        log.write(history_string)
 
 

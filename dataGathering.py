@@ -70,7 +70,7 @@ def convert_image_to_fits(image_filename, fits_filename, hdu_name):
     image_data = cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE)
     
     # Resize the image to match the FITS dimensions if necessary
-    image_data = cv2.resize(image_data, (512, 521), interpolation=cv2.INTER_AREA)
+    image_data = cv2.resize(image_data, (512, 512), interpolation=cv2.INTER_AREA)
     
     # Create a new ImageHDU for the image data
     image_hdu = fits.ImageHDU(image_data, name=hdu_name)

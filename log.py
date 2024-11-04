@@ -37,11 +37,15 @@ def format_strings(model_history, model_hyperparameters, model_name):
 def write_to_log(model_history, model_hyperparameters, model_name):
     log_file_name = 'log/model_runs.txt'
     
-    if not os.path.exists('log'):
-        os.makedirs('log')
-    
-    log_data = format_strings(model_history, model_hyperparameters, model_name)
-    with open(log_file_name, 'a') as log:
-        log.write(log_data)
+    try:
+        if not os.path.exists('log'):
+            os.makedirs('log')
+        
+        log_data = format_strings(model_history, model_hyperparameters, model_name)
+        with open(log_file_name, 'a') as log:
+            log.write(log_data)
+    except Exception as e: #won't catch system exits or keyboard interupt
+        print(f'Warning: log file not written to, write_to_log failed to execute with error: {type(e)}:{e}')
+
 
 

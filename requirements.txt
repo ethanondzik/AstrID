@@ -12,7 +12,7 @@ astroquery
 opencv-python
 scikit-learn
 keras==2.13.1
-tensorflow==2.13.1
+tensorflow==2.13.0
 
 # If you want to use your GPU with tensorflow, follow the instructions at:
 # https://www.tensorflow.org/install/pip

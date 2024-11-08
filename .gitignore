@@ -167,4 +167,4 @@ cython_debug/
 # *.jpeg
 
 # Fits files
-# *.fits
+*.fits

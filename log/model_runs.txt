@@ -334,3 +334,51 @@ Loss and accuracy:
 	Training accuracy: 0.9941893219947815
 	Validation accuracy: 0.9949016571044922
 
+Model: 2024_11_17-2344_200_unet_modelchris.keras Model run at: 2024/11/17 23:44:22 By user: chris 
+Hyper-parameters:
+	input_shape: (512, 512, 3)
+	filters: [32, 64, 128, 256, 512]
+	kernel_size: (3, 3)
+	activation: relu
+	padding: same
+	initializer: <class 'keras.src.initializers.initializers.HeUniform'>
+	optimizer: adam
+	loss: binary_crossentropy
+	weights: {0: 1.0, 1: 5.0}
+	metrics: ['accuracy']
+	epochs: 100
+	batch_size: 4
+	early_stopping_patience: 20
+	test_size: 0.2
+	random_state: 0
+	seed: 42
+Loss and accuracy:
+	Training loss: 0.1342814415693283
+	Validation loss: 0.0401894673705101
+	Training accuracy: 0.9943084716796875
+	Validation accuracy: 0.9950062036514282
+
+Model: 2024_11_17-2344_200_unet_model_chris.keras Model run at: 2024/11/17 23:44:34 By user: chris 
+Hyper-parameters:
+	input_shape: (512, 512, 3)
+	filters: [32, 64, 128, 256, 512]
+	kernel_size: (3, 3)
+	activation: relu
+	padding: same
+	initializer: <class 'keras.src.initializers.initializers.HeUniform'>
+	optimizer: adam
+	loss: binary_crossentropy
+	weights: {0: 1.0, 1: 5.0}
+	metrics: ['accuracy']
+	epochs: 100
+	batch_size: 4
+	early_stopping_patience: 20
+	test_size: 0.2
+	random_state: 0
+	seed: 42
+Loss and accuracy:
+	Training loss: 0.1342814415693283
+	Validation loss: 0.0401894673705101
+	Training accuracy: 0.9943084716796875
+	Validation accuracy: 0.9950062036514282
+

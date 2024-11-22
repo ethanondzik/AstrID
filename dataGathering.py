@@ -767,3 +767,48 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
 
     # Example usage
     # saveFitsImages('data1.fits')
+
+
+def import_dataset(dataset_path = 'data/fits/', dataset_name = 'data'):
+    """
+    Import the dataset from the specified folder and extract the image and mask arrays.
+
+    Parameters:
+    ----------
+    dataset_path : str
+        The path to the folder containing the dataset.
+    dataset_name : str
+        The name of the dataset.('data' for testing, or 'validate' for validation/predictions)
+
+    Returns:
+    -------
+    images : list
+        A list of the image arrays.
+    masks : list
+        A list of the mask arrays.
+    star_data : list
+        A list of the star data.
+    """
+
+    # Create images and masks arrays lists
+    images = []
+    masks = []
+
+    # Create df to store the star data inside each fits file
+    star_data = []
+
+    # Create a list of all the fits files in the dataset folder
+    fits_files = os.listdir(dataset_path)
+
+    # For all the fits files in the dataset folder specified in file_path, extract the image and mask arrays to the respective lists
+    file_path = dataset_path
+    # for file in os.listdir(file_path):
+    for file in os.listdir(file_path):
+        if file.endswith('.png'):
+            os.remove(file_path + file)
+        if file.startswith(dataset_name) and file.endswith('.fits'):
+            images.append(extractImageArray(file_path + file))
+            masks.append(extractPixelMaskArray(file_path + file))
+            star_data.append(extract_star_catalog(file_path + file))
+
+            print(file + ' added to dataset')

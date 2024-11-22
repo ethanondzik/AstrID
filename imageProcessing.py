@@ -19,6 +19,9 @@ def stackMasks(masks):
     
 
 def normalizeImages(images):
+    # Make a copy of the images
+    images = images.copy()
+
     # Find the minimum and maximum values in the dataset
     min_val = np.min(images)
     max_val = np.max(images)

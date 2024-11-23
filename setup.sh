@@ -29,6 +29,16 @@ sudo apt-get --purge remove "*cublas*" "cuda*" "nsight*" "nvidia*"
 # Install libtinfo5
 sudo apt-get install -y libtinfo5
 
+# Add NVIDIA PPA and install the NVIDIA driver
+sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt-get update
+sudo apt-get install -y nvidia-driver-525
+
+# Reboot the system to apply the NVIDIA driver installation
+sudo reboot
+
+# After reboot, continue with the following steps:
+
 # Download and install CUDA 11.8
 wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-wsl-ubuntu-11-8-local_11.8.0-1_amd64.deb
 sudo dpkg -i cuda-repo-wsl-ubuntu-11-8-local_11.8.0-1_amd64.deb
@@ -58,22 +68,14 @@ cat /usr/local/cuda/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
 # Test TensorFlow GPU support
 python -c "import tensorflow as tf; print('Num GPUs Available: ', len(tf.config.list_physical_devices('GPU')))"
 
-# There is a dependency conflict between TensorFlow and the typing_extensions library, which requires a specific version to be installed.
-# Create a constraints file to specify the version of typing_extensions
+# Resolve dependency conflicts
 echo "typing_extensions==4.5.0" > constraints.txt
 echo "ipykernel==6.29.5" >> constraints.txt
 echo "ipython==8.12.0" >> constraints.txt
 
-# Uninstall the current typing_extensions
 pip uninstall -y typing_extensions
-
-# Install the specific version of typing_extensions to ensure compatibility with TensorFlow
 pip install typing_extensions==4.5.0
-
-# Reinstall ipykernel to ensure compatibility using constraints
 pip install --force-reinstall ipykernel -c constraints.txt
-
-# Install the IPython kernel for the virtual environment
 python3 -m ipykernel install --user --name=.venv
 
 

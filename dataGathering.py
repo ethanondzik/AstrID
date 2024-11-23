@@ -18,6 +18,25 @@ import os
 import re
 import pandas as pd
 
+
+
+
+
+"""
+Possible function imports from this file:
+# Import custom functions to extract our Image arrays and Pixel Mask arrays from our created fits files dataset
+from dataGathering import extractImageArray, extractPixelMaskArray, extract_star_catalog
+from dataGathering import getStarData, getCoordRangeFromPixels, getStarsInImage, getPixelCoordsFromStar, getImagePlot, getPixelMaskPlot
+from dataGathering import displayRawImage, displayRawPixelMask, displayImagePlot, displayPixelMaskPlot, displayPixelMaskOverlayPlot
+
+# Import custom functions to import the dataset
+from dataGathering import importDataset
+
+"""
+
+
+
+
 plt.style.use(astropy_mpl_style)
 
 
@@ -114,14 +133,6 @@ def clean_dec_value(dec_value):
     str
         The cleaned declination value.
     """
-    # # List of unwanted characters
-    # unwanted_chars = ["A", "B", "C", "E", "F", "G", "I", "J", "K", "L", "N", "O", "P", "Q", "R", "T", "U", "V", "W", "X", "Y", "Z"]
-
-    # # Replace each unwanted character with an empty string
-    # for char in unwanted_chars:
-    #     dec_value = dec_value.replace(char, "")
-
-    # dec_value = dec_value.replace(" ", "").replace("A", "").replace("B", "").replace("C", "").replace("E", "").replace("F", "").replace("G", "").replace("I", "").replace("J", "").replace("K", "").replace("L", "").replace("N", "").replace("O", "").replace("P", "").replace("Q", "").replace("R", "").replace("T", "").replace("U", "").replace("V", "").replace("W", "").replace("X", "").replace("Y", "").replace("Z", "")
 
     # Regular expression to keep only valid characters
     valid_chars = re.compile(r'[^0-9+\-dms.]')
@@ -350,6 +361,7 @@ def getStarsInImage(wcs, catalog_df, coord_range):
     return stars_in_image
 
 
+
 # Get a star from the catalog and convert is coords to pixel coords
 def getPixelCoordsFromStar(star, wcs):
 
@@ -423,9 +435,6 @@ def extract_star_catalog(file_path):
     
     return catalog
 
-    # # Example usage
-    # file_path = 'data/star0.fits'
-    # catalog = extract_star_catalog(file_path)
 
 
 def displayRawImage(file_path):
@@ -471,6 +480,8 @@ def displayRawPixelMask(file_path):
     plt.grid(False)
     plt.show()
 
+
+
 # Display the image with coords overlaid on top
 def displayImagePlot(file_path):
 
@@ -488,6 +499,8 @@ def displayImagePlot(file_path):
         ax.grid(color='white', ls='dotted')
 
         plt.show()
+
+
 
 
 # Get the image
@@ -702,7 +715,7 @@ def getPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
 
 
-# Define a function that will take all the images and save them in a subplot
+
 def saveFitsImages(filename, file_path, catalog_type='II/246'):
 
     plt.style.use(astropy_mpl_style)
@@ -767,3 +780,57 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
 
     # Example usage
     # saveFitsImages('data1.fits')
+
+
+def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
+    """
+    Import the dataset from the specified folder and extract the image and mask arrays.
+
+    Parameters:
+    ----------
+    dataset_path : str
+        The path to the folder containing the dataset.
+    dataset_name : str
+        The name of the dataset.('data' for testing, or 'validate' for validation/predictions)
+
+    Returns:
+    -------
+    images : list
+        A list of the image arrays.
+    masks : list
+        A list of the mask arrays.
+    star_data : list
+        A list of the star data.
+    fits_files : list
+        A list of the FITS files in the dataset folder.
+    """
+
+    # Create images and masks arrays lists
+    images = []
+    masks = []
+
+    # Create a list of all the wcs data in the dataset folder
+    wcs_data = []
+
+    # Create df to store the star data inside each fits file
+    stars_in_image = []
+
+    # Create a list of all the fits files in the dataset folder
+    fits_files = os.listdir(dataset_path)
+
+    # For all the fits files in the dataset folder specified in file_path, extract the image and mask arrays to the respective lists
+    file_path = dataset_path
+    # for file in os.listdir(file_path):
+    for file in os.listdir(file_path):
+        if file.endswith('.png'):
+            os.remove(file_path + file)
+        if file.startswith(dataset_name) and file.endswith('.fits'):
+            images.append(extractImageArray(file_path + file))
+            masks.append(extractPixelMaskArray(file_path + file))
+            wcs = wcs_data.append(WCS(fits.open(file_path + file)[0].header))
+            stars_in_image.append(getStarsInImage(wcs, extract_star_catalog(file_path + file).to_pandas(), getCoordRangeFromPixels(WCS(fits.open(file_path + file)[0].header))))
+
+
+            print(file + ' added to dataset')
+
+    return images, masks, stars_in_image, wcs_data, fits_files

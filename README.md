@@ -1,10 +1,8 @@
 # AstrID
-AstrID: A project focused on identifying and classifying astronomical objects using data from various space catalogs. 
-Leveraging machine learning, AstrID aims to enhance our understanding of stars, galaxies, and other celestial phenomena.
+*AstrID:* A project focused on identifying and classifying astronomical objects using data from various space catalogs. Leveraging machine learning, AstrID aims to enhance our understanding of stars, galaxies, and other celestial phenomena.
 
 ## Project Goals and Objectives
-The primary goal of AstrID is to develop a robust system for identifying and classifying various astronomical objects, such as stars and galaxies, using data from space catalogs. 
-A stretch goal of the project is to identify potential black hole candidates using advanced machine learning techniques.
+The primary goal of AstrID is to develop a robust system for identifying and classifying various astronomical objects, such as stars and galaxies, using data from space catalogs. A stretch goal of the project is to identify potential black hole candidates using advanced machine learning techniques.
 
 ## Features
 - **Data Retrieval**: Fetch high-resolution images and data from space catalogs like Hipparcos and 2MASS.
@@ -14,7 +12,6 @@ A stretch goal of the project is to identify potential black hole candidates usi
 - **Model Evaluation**: Evaluate the performance of trained models on validation and test datasets.
 - **Prediction**: Make predictions on new astronomical data using trained models.
 - **Black Hole Identification**: (Stretch Goal) Identify potential black hole candidates.
-
 
 ## Instructions
 
@@ -54,6 +51,227 @@ Notebooks may be viewed in any application capable of handling *.ipynb files.
 
 ### System Dependencies
 
-Ensure the following system dependency is installed:
+Ensure the following system dependencies are installed:
 ```bash
 sudo apt-get install libgl1-mesa-glx
+```
+
+### Setting Up CUDA and cuDNN for TensorFlow GPU Support
+
+1. **Install NVIDIA Driver**:
+    ```bash
+    sudo add-apt-repository ppa:graphics-drivers/ppa
+    sudo apt-get update
+    sudo apt-get install -y nvidia-driver-525
+    sudo reboot
+    ```
+
+2. **Install CUDA 11.8**:
+    ```bash
+    wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-wsl-ubuntu-11-8-local_11.8.0-1_amd64.deb
+    sudo dpkg -i cuda-repo-wsl-ubuntu-11-8-local_11.8.0-1_amd64.deb
+    sudo cp /var/cuda-repo-wsl-ubuntu-11-8-local/cuda-9EA88183-keyring.gpg /usr/share/keyrings/
+    sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/7fa2af80.pub
+    sudo apt-get update
+    sudo apt-get install -y cuda-11-8
+    ```
+
+3. **Install cuDNN 8.6**:
+    ```bash
+    wget https://developer.nvidia.com/compute/cudnn/secure/8.6.0/local_installers/11.8/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz
+    tar -xvf cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz
+    sudo cp cudnn-linux-x86_64-8.6.0.163_cuda11-archive/include/cudnn*.h /usr/local/cuda-11.8/include
+    sudo cp -P cudnn-linux-x86_64-8.6.0.163_cuda11-archive/lib/libcudnn* /usr/local/cuda-11.8/lib64/
+    sudo chmod a+r /usr/local/cuda-11.8/include/cudnn*.h /usr/local/cuda-11.8/lib64/libcudnn*
+    ```
+
+4. **Set Environment Variables**:
+    ```bash
+    echo 'export PATH=/usr/local/cuda-11.8/bin:$PATH' >> ~/.bashrc
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+
+5. **Verify CUDA and cuDNN Installation**:
+    ```bash
+    nvcc --version
+    cat /usr/local/cuda/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
+    ```
+
+6. **Test TensorFlow GPU Support**:
+    ```python
+    import tensorflow as tf
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+    ```
+
+### Handling Large Files with Git LFS
+
+1. **Install Git LFS**:
+    ```bash
+    sudo apt-get install git-lfs
+    ```
+
+2. **Initialize Git LFS**:
+    ```bash
+    git lfs install
+    ```
+
+3. **Track Large Files**:
+    ```bash
+    git lfs track "*.keras"
+    ```
+
+4. **Add and Commit Changes**:
+    ```bash
+    git add .gitattributes
+    git add /path/to/your/model/file.keras
+    git commit -m "Add large Keras model file using Git LFS"
+    ```
+
+5. **Push Changes**:
+    ```bash
+    git push origin your-branch-name
+    ```
+
+### Data Gathering
+
+The `getStarData` function is a crucial part of our data preparation pipeline. It is responsible for generating and saving FITS files that contain both image data and star catalog data. These FITS files are then used to train our model.
+
+#### Functionality of `getStarData`
+
+The `getStarData` function performs the following steps:
+
+1. **Directory Creation**:
+   - Creates a new directory named `data` if it does not already exist. This directory will store the generated FITS files.
+
+2. **Coordinate Generation**:
+   - Generates random coordinates (RA and Dec) while avoiding the galactic plane to ensure a diverse set of sky regions.
+
+3. **Image Data Fetching**:
+   - Uses the `SkyView` service to fetch image data from the DSS survey for the generated coordinates. The image data is saved as a FITS file.
+
+4. **Star Catalog Fetching**:
+   - Uses the `Vizier` service to fetch star catalog data for the same coordinates. The star catalog data is appended to the FITS file as a binary table HDU.
+
+5. **Pixel Mask Creation**:
+   - Creates a pixel mask indicating the positions of stars in the image. The pixel mask is saved as an additional HDU in the FITS file.
+
+6. **Star Overlay Plot**:
+   - Generates a plot of the image with star positions overlaid. This plot is saved as an image file and then converted to FITS format, appended to the original FITS file.
+
+#### Using `getStarData` to Prepare the Dataset
+
+To prepare the dataset for training the model, we use the `getStarData` function with the parameter `'data'`. This generates a set of FITS files containing image data, star catalog data, and pixel masks. These files are stored in the `data/fits/` directory.
+
+```python
+# Generate training data
+getStarData(catalog_type='II/246', iterations=250, filename='data')
+```
+
+For validation purposes, we use the `getStarData` function with the filename parameter `'validate'`. This generates a separate set of FITS files for validation, ensuring that the files have the name `validate0.fits` for the `validateModel.ipynb` notebook.
+
+```python
+# Generate validation data
+getStarData(catalog_type='II/246', iterations=50, filename='validate')
+```
+
+### Importing Images and Star Data from the Dataset
+
+In this section, we will import the images, masks, and star data from our prepared dataset using the `importDataset` function. This function reads the FITS files from the specified directory and extracts the necessary data for training our model.
+
+### Major Functionality of the `dataGathering` Module
+
+The `dataGathering` module contains several important functions that facilitate the preparation and visualization of our dataset. Below, we provide an overview of the major functionalities:
+
+1. **Data Extraction Functions**:
+   - `extractImageArray`: Extracts image data from FITS files.
+   - `extractPixelMaskArray`: Extracts pixel mask data from FITS files.
+   - `extract_star_catalog`: Extracts star catalog data from FITS files.
+
+2. **Data Import Function**:
+   - `importDataset`: Imports the dataset by reading FITS files from a specified directory and extracting images, masks, and star data.
+
+3. **Visualization Functions**:
+   - `getImagePlot`: Generates a plot of the image data.
+   - `getPixelMaskPlot`: Generates a plot of the pixel mask data.
+   - `displayRawImage`: Displays the raw image data.
+   - `displayRawPixelMask`: Displays the raw pixel mask data.
+   - `displayImagePlot`: Displays the image plot.
+   - `displayPixelMaskPlot`: Displays the pixel mask plot.
+   - `displayPixelMaskOverlayPlot`: Displays an overlay plot of the image and pixel mask.
+
+4. **Star Data Functions**:
+   - `getStarData`: Generates and saves FITS files containing image data and star catalog data.
+   - `importDataset`: Imports the dataset by reading FITS files from a specified directory and extracting images, masks, and star data.
+
+These functions work together to streamline the process of preparing and visualizing our dataset, ensuring that we have high-quality data for training and validating our model.
+
+### Training the Model
+
+We use the `trainModel.ipynb` notebook to train our U-Net model. The notebook includes the following steps:
+
+1. **Importing Necessary Libraries and Modules**:
+   - TensorFlow and Keras for building and training the neural network.
+   - NumPy for numerical operations and handling arrays.
+   - Matplotlib for plotting and visualizing data.
+   - Custom functions from `unet`, `dataGathering`, `imageProcessing`, and `log`.
+
+2. **Initializing Lists for the Dataset**:
+   - Initialize lists to store images, masks, star data, WCS data, and FITS file names.
+
+3. **Importing the Dataset**:
+   - Use the `importDataset` function to load the dataset and extract images, masks, star data, WCS data, and FITS file names.
+
+4. **Preparing Images and Masks for the Model**:
+   - Convert images to 3-channel format and masks to single-channel format.
+   - Normalize the images using min-max normalization.
+
+5. **Building the U-Net Model**:
+   - Define and compile the U-Net model using specified hyperparameters.
+
+6. **Splitting the Stacked Images and Masks**:
+   - Split the dataset into training and validation sets using the `train_test_split` function.
+
+7. **Training the Model**:
+   - Train the U-Net model using the training dataset with early stopping to prevent overfitting.
+
+8. **Saving the Model**:
+   - Save the trained model and log the model details, including history, parameters, and saved model name.
+
+9. **Evaluating the Model**:
+   - Evaluate the model's performance on the validation dataset by calculating loss and accuracy metrics.
+
+10. **Visualizing Results**:
+    - Visualize the loss and accuracy along each epoch.
+
+### Validating the Model
+
+We use the `validateModel.ipynb` notebook to validate our trained U-Net model. The notebook includes the following steps:
+
+1. **Importing Necessary Libraries and Modules**:
+   - TensorFlow and Keras for loading and using the trained neural network.
+   - NumPy for numerical operations and handling arrays.
+   - Matplotlib for plotting and visualizing data.
+   - Astropy for handling FITS files and WCS data.
+   - Custom functions from `dataGathering` and `imageProcessing`.
+
+2. **Loading the Dataset**:
+   - Use the `importDataset` function to load the validation dataset and extract images, masks, star data, WCS data, and FITS file names.
+
+3. **Preparing Images and Masks for the Model**:
+   - Convert images to 3-channel format and masks to single-channel format.
+   - Normalize the images using min-max normalization.
+
+4. **Loading the Trained Model**:
+   - Load the trained U-Net model from the saved models directory.
+
+5. **Evaluating the Model**:
+   - Evaluate the model's performance on the validation dataset by calculating loss and accuracy metrics.
+
+6. **Making Predictions**:
+   - Use the trained model to make predictions on the validation dataset.
+
+7. **Visualizing Results**:
+   - Visualize the results by plotting the original images, ground truth masks, and predicted masks.
+
+By following these instructions, you should be able to set up your environment, view notebooks, and handle large files effectively.

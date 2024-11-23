@@ -167,4 +167,10 @@ cython_debug/
 # *.jpeg
 
 # Fits files
-# *.fits
+*.fits
+
+# Cuda files
+*cuda*
+
+# CudNN files
+*cudnn*

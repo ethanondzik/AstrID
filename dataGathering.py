@@ -114,14 +114,6 @@ def clean_dec_value(dec_value):
     str
         The cleaned declination value.
     """
-    # # List of unwanted characters
-    # unwanted_chars = ["A", "B", "C", "E", "F", "G", "I", "J", "K", "L", "N", "O", "P", "Q", "R", "T", "U", "V", "W", "X", "Y", "Z"]
-
-    # # Replace each unwanted character with an empty string
-    # for char in unwanted_chars:
-    #     dec_value = dec_value.replace(char, "")
-
-    # dec_value = dec_value.replace(" ", "").replace("A", "").replace("B", "").replace("C", "").replace("E", "").replace("F", "").replace("G", "").replace("I", "").replace("J", "").replace("K", "").replace("L", "").replace("N", "").replace("O", "").replace("P", "").replace("Q", "").replace("R", "").replace("T", "").replace("U", "").replace("V", "").replace("W", "").replace("X", "").replace("Y", "").replace("Z", "")
 
     # Regular expression to keep only valid characters
     valid_chars = re.compile(r'[^0-9+\-dms.]')
@@ -350,6 +342,7 @@ def getStarsInImage(wcs, catalog_df, coord_range):
     return stars_in_image
 
 
+
 # Get a star from the catalog and convert is coords to pixel coords
 def getPixelCoordsFromStar(star, wcs):
 
@@ -423,9 +416,6 @@ def extract_star_catalog(file_path):
     
     return catalog
 
-    # # Example usage
-    # file_path = 'data/star0.fits'
-    # catalog = extract_star_catalog(file_path)
 
 
 def displayRawImage(file_path):
@@ -471,6 +461,8 @@ def displayRawPixelMask(file_path):
     plt.grid(False)
     plt.show()
 
+
+
 # Display the image with coords overlaid on top
 def displayImagePlot(file_path):
 
@@ -488,6 +480,8 @@ def displayImagePlot(file_path):
         ax.grid(color='white', ls='dotted')
 
         plt.show()
+
+
 
 
 # Get the image
@@ -702,7 +696,7 @@ def getPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
 
 
-# Define a function that will take all the images and save them in a subplot
+
 def saveFitsImages(filename, file_path, catalog_type='II/246'):
 
     plt.style.use(astropy_mpl_style)
@@ -769,7 +763,7 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
     # saveFitsImages('data1.fits')
 
 
-def import_dataset(dataset_path = 'data/fits/', dataset_name = 'data'):
+def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
     """
     Import the dataset from the specified folder and extract the image and mask arrays.
 
@@ -788,6 +782,8 @@ def import_dataset(dataset_path = 'data/fits/', dataset_name = 'data'):
         A list of the mask arrays.
     star_data : list
         A list of the star data.
+    fits_files : list
+        A list of the FITS files in the dataset folder.
     """
 
     # Create images and masks arrays lists
@@ -812,3 +808,5 @@ def import_dataset(dataset_path = 'data/fits/', dataset_name = 'data'):
             star_data.append(extract_star_catalog(file_path + file))
 
             print(file + ' added to dataset')
+
+    return images, masks, star_data, fits_files

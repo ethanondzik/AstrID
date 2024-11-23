@@ -913,3 +913,28 @@ Loss and accuracy:
 	Training accuracy: 0.9644006490707397
 	Validation accuracy: 0.9658341407775879
 
+Model: 2024_11_22-1807_200_unet_model_chris.keras Model run at: 2024/11/22 18:07:17 By user: chris 
+Hyper-parameters:
+	input_shape: (512, 512, 3)
+	filters: [64, 128, 256, 512, 1024]
+	kernel_size: (3, 3)
+	activation: relu
+	padding: same
+	initializer: <class 'keras.src.initializers.initializers.HeUniform'>
+	learning_rate: 1e-05
+	optimizer: Adam(learning_rate=learning_rate)
+	loss: binary_crossentropy
+	weights: {0: 1.0, 1: 5.5}
+	metrics: ['accuracy']
+	epochs: 1000
+	batch_size: 4
+	early_stopping_patience: 10
+	test_size: 0.2
+	random_state: 0
+	seed: 42
+Loss and accuracy:
+	Training loss: 8.89990234375
+	Validation loss: 3.355057954788208
+	Training accuracy: 0.9642408490180969
+	Validation accuracy: 0.9581549763679504
+

@@ -168,3 +168,9 @@ cython_debug/
 
 # Fits files
 *.fits
+
+# Cuda files
+*cuda*
+
+# CudNN files
+*cudnn*

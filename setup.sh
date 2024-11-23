@@ -1,4 +1,4 @@
-#!/bin/bash
+# !/bin/bash
 
 # Install Python 3.10 and virtualenv
 sudo apt-get update
@@ -57,3 +57,25 @@ cat /usr/local/cuda/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
 
 # Test TensorFlow GPU support
 python -c "import tensorflow as tf; print('Num GPUs Available: ', len(tf.config.list_physical_devices('GPU')))"
+
+# There is a dependency conflict between TensorFlow and the typing_extensions library, which requires a specific version to be installed.
+# Create a constraints file to specify the version of typing_extensions
+echo "typing_extensions==4.5.0" > constraints.txt
+echo "ipykernel==6.29.5" >> constraints.txt
+echo "ipython==8.12.0" >> constraints.txt
+
+# Uninstall the current typing_extensions
+pip uninstall -y typing_extensions
+
+# Install the specific version of typing_extensions to ensure compatibility with TensorFlow
+pip install typing_extensions==4.5.0
+
+# Reinstall ipykernel to ensure compatibility using constraints
+pip install --force-reinstall ipykernel -c constraints.txt
+
+# Install the IPython kernel for the virtual environment
+python3 -m ipykernel install --user --name=.venv
+
+
+# Your venv is now set up with TensorFlow GPU support and the necessary dependencies. 
+# You can start using it by activating the virtual environment and launching Jupyter Notebook or any other Python environment.

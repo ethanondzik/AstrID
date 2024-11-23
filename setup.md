@@ -101,6 +101,8 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 ### Example Commands Combined
 
+To complete the above steps you can run [`setup.sh`](setup.sh) in order to complete the setup process in your linux terminal.
+
 Here are the commands combined for easy reference:
 
 ```bash

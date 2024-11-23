@@ -18,6 +18,25 @@ import os
 import re
 import pandas as pd
 
+
+
+
+
+"""
+Possible function imports from this file:
+# Import custom functions to extract our Image arrays and Pixel Mask arrays from our created fits files dataset
+from dataGathering import extractImageArray, extractPixelMaskArray, extract_star_catalog
+from dataGathering import getStarData, getCoordRangeFromPixels, getStarsInImage, getPixelCoordsFromStar, getImagePlot, getPixelMaskPlot
+from dataGathering import displayRawImage, displayRawPixelMask, displayImagePlot, displayPixelMaskPlot, displayPixelMaskOverlayPlot
+
+# Import custom functions to import the dataset
+from dataGathering import importDataset
+
+"""
+
+
+
+
 plt.style.use(astropy_mpl_style)
 
 
@@ -790,8 +809,11 @@ def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
     images = []
     masks = []
 
+    # Create a list of all the wcs data in the dataset folder
+    wcs_data = []
+
     # Create df to store the star data inside each fits file
-    star_data = []
+    stars_in_image = []
 
     # Create a list of all the fits files in the dataset folder
     fits_files = os.listdir(dataset_path)
@@ -805,8 +827,10 @@ def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
         if file.startswith(dataset_name) and file.endswith('.fits'):
             images.append(extractImageArray(file_path + file))
             masks.append(extractPixelMaskArray(file_path + file))
-            star_data.append(extract_star_catalog(file_path + file))
+            wcs = wcs_data.append(WCS(fits.open(file_path + file)[0].header))
+            stars_in_image.append(getStarsInImage(wcs, extract_star_catalog(file_path + file).to_pandas(), getCoordRangeFromPixels(WCS(fits.open(file_path + file)[0].header))))
+
 
             print(file + ' added to dataset')
 
-    return images, masks, star_data, fits_files
+    return images, masks, stars_in_image, wcs_data, fits_files

@@ -1,13 +1,23 @@
-#!/bin/bash
+# !/bin/bash
 
 # Install Python 3.10 and virtualenv
 sudo apt-get update
-sudo apt-get install -y libgl1-mesa-glx
-sudo apt-get install python3.10 python3.10-venv python3.10-dev
-pip install virtualenv
 
-# Create and activate a virtual environment
-virtualenv --python=/usr/bin/python3.10 .venv
+# Add deadsnakes PPA for latest Python versions
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+
+# Install Python 3.10 and its associated packages
+sudo apt-get install -y python3.10 python3.10-venv python3.10-dev
+
+# Install OpenGL library
+sudo apt-get install -y libgl1
+
+# Install pip
+sudo apt install -y python3-pip
+
+# Create and activate a virtual environment using the built-in venv module
+python3.10 -m venv .venv
 source .venv/bin/activate
 
 # Install TensorFlow with GPU support
@@ -15,6 +25,19 @@ pip install tensorflow
 
 # Uninstall existing CUDA and cuDNN versions
 sudo apt-get --purge remove "*cublas*" "cuda*" "nsight*" "nvidia*"
+
+# Install libtinfo5
+sudo apt-get install -y libtinfo5
+
+# Add NVIDIA PPA and install the NVIDIA driver
+sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt-get update
+sudo apt-get install -y nvidia-driver-525
+
+# Reboot the system to apply the NVIDIA driver installation
+sudo reboot
+
+# After reboot, continue with the following steps:
 
 # Download and install CUDA 11.8
 wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-wsl-ubuntu-11-8-local_11.8.0-1_amd64.deb
@@ -24,8 +47,10 @@ sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/
 sudo apt-get update
 sudo apt-get install -y cuda-11-8
 
-# Download and install cuDNN 8.6
-wget https://developer.nvidia.com/compute/cudnn/secure/8.6.0/local_installers/11.8/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz
+# Download the cuDNN 8.6 library for CUDA 11.8
+#####- Download the cuDNN 8.6 library for CUDA 11.8 from the [NVIDIA cuDNN website](https://developer.nvidia.com/compute/cudnn/secure/8.6.0/local_installers/11.8/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz).
+
+
 tar -xvf cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz
 sudo cp cudnn-linux-x86_64-8.6.0.163_cuda11-archive/include/cudnn*.h /usr/local/cuda-11.8/include
 sudo cp -P cudnn-linux-x86_64-8.6.0.163_cuda11-archive/lib/libcudnn* /usr/local/cuda-11.8/lib64/
@@ -42,3 +67,17 @@ cat /usr/local/cuda/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
 
 # Test TensorFlow GPU support
 python -c "import tensorflow as tf; print('Num GPUs Available: ', len(tf.config.list_physical_devices('GPU')))"
+
+# Resolve dependency conflicts
+echo "typing_extensions==4.5.0" > constraints.txt
+echo "ipykernel==6.29.5" >> constraints.txt
+echo "ipython==8.12.0" >> constraints.txt
+
+pip uninstall -y typing_extensions
+pip install typing_extensions==4.5.0
+pip install --force-reinstall ipykernel -c constraints.txt
+python3 -m ipykernel install --user --name=.venv
+
+
+# Your venv is now set up with TensorFlow GPU support and the necessary dependencies. 
+# You can start using it by activating the virtual environment and launching Jupyter Notebook or any other Python environment.

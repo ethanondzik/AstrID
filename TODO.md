@@ -9,8 +9,8 @@
 
 ## Improvements
 - [ ] Optimize image processing algorithms
-- [ ] Enhance the accuracy of the classification model
-- [ ] Improve documentation and add more examples
+- [X] Enhance the accuracy of the classification model
+- [X] Improve documentation and add more examples
 
 ## Stretch Goals
 - [ ] Identify potential black hole candidates

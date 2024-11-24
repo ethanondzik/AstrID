@@ -60,51 +60,7 @@ sudo apt-get install libgl1-mesa-glx
 
 ### Setting Up CUDA and cuDNN for TensorFlow GPU Support
 
-1. **Install NVIDIA Driver**:
-    ```bash
-    sudo add-apt-repository ppa:graphics-drivers/ppa
-    sudo apt-get update
-    sudo apt-get install -y nvidia-driver-525
-    sudo reboot
-    ```
-
-2. **Install CUDA 11.8**:
-    ```bash
-    wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-wsl-ubuntu-11-8-local_11.8.0-1_amd64.deb
-    sudo dpkg -i cuda-repo-wsl-ubuntu-11-8-local_11.8.0-1_amd64.deb
-    sudo cp /var/cuda-repo-wsl-ubuntu-11-8-local/cuda-9EA88183-keyring.gpg /usr/share/keyrings/
-    sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/7fa2af80.pub
-    sudo apt-get update
-    sudo apt-get install -y cuda-11-8
-    ```
-
-3. **Install cuDNN 8.6**:
-    ```bash
-    wget https://developer.nvidia.com/compute/cudnn/secure/8.6.0/local_installers/11.8/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz
-    tar -xvf cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz
-    sudo cp cudnn-linux-x86_64-8.6.0.163_cuda11-archive/include/cudnn*.h /usr/local/cuda-11.8/include
-    sudo cp -P cudnn-linux-x86_64-8.6.0.163_cuda11-archive/lib/libcudnn* /usr/local/cuda-11.8/lib64/
-    sudo chmod a+r /usr/local/cuda-11.8/include/cudnn*.h /usr/local/cuda-11.8/lib64/libcudnn*
-    ```
-
-4. **Set Environment Variables**:
-    ```bash
-    echo 'export PATH=/usr/local/cuda-11.8/bin:$PATH' >> ~/.bashrc
-    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-    source ~/.bashrc
-    ```
-
-5. **Verify CUDA and cuDNN Installation**:
-    ```bash
-    nvcc --version
-    cat /usr/local/cuda/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
-    ```
-
-6. **Test TensorFlow GPU Support**:
-    ```python
-    import tensorflow as tf
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-    ```
+**See instructions listed in [`GPU_setup.md`](docs/GPU_setup.md).
 
 ### Data Gathering
 

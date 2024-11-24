@@ -26,8 +26,9 @@ import pandas as pd
 Possible function imports from this file:
 # Import custom functions to extract our Image arrays and Pixel Mask arrays from our created fits files dataset
 from dataGathering import extractImageArray, extractPixelMaskArray, extract_star_catalog
-from dataGathering import getStarData, getCoordRangeFromPixels, getStarsInImage, getPixelCoordsFromStar, getImagePlot, getPixelMaskPlot
+from dataGathering import createStarDataset, getCoordRangeFromPixels, getStarsInImage, getPixelCoordsFromStar, getImagePlot, getPixelMaskPlot
 from dataGathering import displayRawImage, displayRawPixelMask, displayImagePlot, displayPixelMaskPlot, displayPixelMaskOverlayPlot
+from dataGathering import saveFitsImages, importDataset, printFitsHeader, printFitsContents, printStarData
 
 # Import custom functions to import the dataset
 from dataGathering import importDataset
@@ -72,7 +73,7 @@ def save_plot_as_image(ax, filename, pixels=512):
     return image_filename
 
 
-def convert_image_to_fits(image_filename, fits_filename, hdu_name):
+def convert_image_to_fits(image_filename, fits_filename, hdu_name, pixels=512):
     """
     Convert the saved image to FITS format and append it to the FITS file.
 
@@ -89,7 +90,7 @@ def convert_image_to_fits(image_filename, fits_filename, hdu_name):
     image_data = cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE)
     
     # Resize the image to match the FITS dimensions if necessary
-    image_data = cv2.resize(image_data, (512, 512), interpolation=cv2.INTER_AREA)
+    image_data = cv2.resize(image_data, (pixels, pixels), interpolation=cv2.INTER_AREA)
     
     # Create a new ImageHDU for the image data
     image_hdu = fits.ImageHDU(image_data, name=hdu_name)
@@ -139,7 +140,7 @@ def clean_dec_value(dec_value):
     return valid_chars.sub('', dec_value)
 
 
-def getStarData(catalog_type='II/246', iterations=1, filename='data'):
+def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixels=512):
 
     # Create a new directory to store the
     if not os.path.exists('data'):
@@ -166,7 +167,7 @@ def getStarData(catalog_type='II/246', iterations=1, filename='data'):
 
 
                 # Fetch image data from SkyView
-                image_list = SkyView.get_images(position=coords, survey=['DSS'], radius=0.25 * u.deg, pixels=512)
+                image_list = SkyView.get_images(position=coords, survey=['DSS'], radius=0.25 * u.deg, pixels=pixels)
 
                 # Extract the image data from the list
                 image_hdu = image_list[0][0]
@@ -238,7 +239,6 @@ def getStarData(catalog_type='II/246', iterations=1, filename='data'):
             except Exception as e:
                 print(f"An error occurred: {e}. Generating new coordinates and retrying...)")
                 attempts += 1
-        # raise RuntimeError(f"Failed to fetch and save data after {attempts} attempts.")
 
 
 
@@ -278,7 +278,7 @@ def getStarData(catalog_type='II/246', iterations=1, filename='data'):
         image_filename = save_plot_as_image(ax, file_path)
         
         # Convert the saved image to FITS format and append it to the FITS file
-        convert_image_to_fits(image_filename, file_path, 'star_overlay')
+        convert_image_to_fits(image_filename, file_path, 'star_overlay', pixels=pixels)
         
 
 
@@ -474,7 +474,7 @@ def displayRawPixelMask(file_path):
 
     plt.figure(figsize=(10, 10))
     plt.imshow(pixel_mask, cmap='gray', origin='lower')
-    plt.title('Raw Image Data')
+    plt.title('Raw Pixel Mask')
     plt.xlabel('X Pixel')
     plt.ylabel('Y Pixel')
     plt.grid(False)
@@ -778,8 +778,39 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
         plt.savefig(image_path)
         plt.show()
 
-    # Example usage
-    # saveFitsImages('data1.fits')
+
+
+def getFitsContents(file_path):
+    FITS_content = fits.open(file_path)
+    return FITS_content.info()
+
+
+def getFitsHeader(file_path):
+        with fits.open(file_path) as hdul:
+            header = hdul[0].header
+            header = dict(header)
+            return header
+
+
+
+def getStarTable(file_path):
+    """
+    Print the star data from the FITS file.
+    Explanation of start data found in [`star_data_explained.md`](docs/star_data_explained.md)
+    
+    Parameters:
+    ----------
+    file_path : str
+        The path to the FITS file.
+
+        
+    """
+    with fits.open(file_path) as hdul:
+        star_catalog = hdul['STAR_CATALOG'].data
+        star_table = Table(star_catalog)
+        return star_table
+
+            
 
 
 def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):

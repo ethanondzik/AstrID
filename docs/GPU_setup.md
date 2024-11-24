@@ -87,9 +87,9 @@ sudo apt-get install -y libtinfo5
 #### 8. Install cuDNN 8.6
 
 1. **Download cuDNN 8.6**:
-    ```bash
-    wget https://developer.nvidia.com/compute/cudnn/secure/8.6.0/local_installers/11.8/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz
-    ```
+    Download the cuDNN 8.6 library for CUDA 11.8 from the [NVIDIA cuDNN website](https://developer.nvidia.com/compute/cudnn/secure/8.6.0/local_installers/11.8/cudnn-linux-x86_64-8.6.0.163_cuda11-archive.tar.xz).
+
+
 
 2. **Extract the cuDNN Archive**:
     ```bash

@@ -60,7 +60,7 @@ sudo apt-get install libgl1-mesa-glx
 
 ### Setting Up CUDA and cuDNN for TensorFlow GPU Support
 
-**See instructions listed in [`GPU_setup.md`](docs/GPU_setup.md).
+**See instructions listed in [`GPU_setup.md`](docs/GPU_setup.md).**
 
 ### Data Gathering
 

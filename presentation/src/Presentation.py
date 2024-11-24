@@ -3,10 +3,12 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 import json
+import os
 from astropy.io import fits
 
 # Load the FITS file and extract the pixel mask
 fits_file = '../resource/data0.fits'
+fits_file = os.path.join(os.path.dirname(__file__), fits_file) #calculate absolute path for fits file on the fly
 hdul = fits.open(fits_file)
 image_data = hdul[0].data  # Image is in the primary HDU
 hdul.close()

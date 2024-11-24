@@ -1,0 +1,10 @@
+dash 
+dash-html-components
+dash-core-components
+dash-bootstrap-components
+pandas
+astropy
+matplotlib
+numpy
+opencv-python
+imageio

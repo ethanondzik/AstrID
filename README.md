@@ -62,6 +62,9 @@ sudo apt-get install libgl1-mesa-glx
 
 **See instructions listed in [`GPU_setup.md`](docs/GPU_setup.md).**
 
+
+## Usage
+
 ### Data Gathering
 
 The `getStarData` function is a crucial part of our data preparation pipeline. It is responsible for generating and saving FITS files that contain both image data and star catalog data. These FITS files are then used to train our model.

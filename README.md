@@ -18,6 +18,8 @@ The primary goal of AstrID is to develop a robust system for identifying and cla
 ### Installation
 How to install the program and prepare for running.
 
+Full installation instructions with GPU functionality can be found in the [`GPU_setup.md`](docs/GPU_setup.md)
+
 1. **Navigate to the main folder and create a new virtual environment**:
     ```bash
     python3 -m venv .venv
@@ -102,35 +104,6 @@ sudo apt-get install libgl1-mesa-glx
     ```python
     import tensorflow as tf
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-    ```
-
-### Handling Large Files with Git LFS
-
-1. **Install Git LFS**:
-    ```bash
-    sudo apt-get install git-lfs
-    ```
-
-2. **Initialize Git LFS**:
-    ```bash
-    git lfs install
-    ```
-
-3. **Track Large Files**:
-    ```bash
-    git lfs track "*.keras"
-    ```
-
-4. **Add and Commit Changes**:
-    ```bash
-    git add .gitattributes
-    git add /path/to/your/model/file.keras
-    git commit -m "Add large Keras model file using Git LFS"
-    ```
-
-5. **Push Changes**:
-    ```bash
-    git push origin your-branch-name
     ```
 
 ### Data Gathering

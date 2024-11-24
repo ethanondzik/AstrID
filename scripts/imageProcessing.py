@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.legend_handler import HandlerPatch
 
-from dataGathering import getPixelCoordsFromStar
+from scripts.dataGathering import getPixelCoordsFromStar
 
 def stackImages(images):
     stacked_images = np.array([np.stack([image, image, image], axis=-1) for image in images])

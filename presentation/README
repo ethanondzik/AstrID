@@ -1,0 +1,21 @@
+The UI uses the Dash framework to illustrate the differences between the true labels
+of the data, white pixels (bright cosmic objects) in this case, and the predicted location of said objects.
+
+The intent to show how far off or close predictions may look like using a generic coordinate system.
+
+To run the Presentation.py locally if using a Unix based terminal and python3, type:
+
+    - python3 -m venv .dash_ui
+        To create your own virtual environment called "dash_ui"
+    
+    - source .dash_ui/bin/activate
+        To activate the virtual environment
+
+    - pip install -r requirements.txt
+        Wait for dependencies to download
+
+    - python3 Presentation.py
+        Copy and paste the HTTP URL provided by the output then paste it on your browser
+
+You can then toggle the items on the graph on/off by clicking on the legend on the right side of the screen.
+Feel free to explore the other features of the UI by yourself.

@@ -18,6 +18,16 @@ The primary goal of AstrID is to develop a robust system for identifying and cla
 ### Installation
 How to install the program and prepare for running.
 
+**`NOTE`**` : This Repo will require Git LFS in order to download saved model weights files, as '.h5' files are over 100MB.`
+
+Install Git LFS
+
+    sudo apt-get install git-lfs
+
+Initialize Git LFS
+
+    git lfs install
+
 Full installation instructions with GPU functionality can be found in the [`GPU_setup.md`](docs/GPU_setup.md)
 
 1. **Navigate to the main folder and create a new virtual environment**:
@@ -64,6 +74,77 @@ sudo apt-get install libgl1-mesa-glx
 
 
 ## Usage
+
+### Validating the Model
+
+We use the `validateModel.ipynb` notebook to validate our trained U-Net model. The notebook includes the following steps:
+
+1. **Importing Necessary Libraries and Modules**:
+   - TensorFlow and Keras for loading and using the trained neural network.
+   - NumPy for numerical operations and handling arrays.
+   - Matplotlib for plotting and visualizing data.
+   - Astropy for handling FITS files and WCS data.
+   - Custom functions from `dataGathering` and `imageProcessing`.
+
+2. **Loading the Dataset**:
+   - Use the `importDataset` function to load the validation dataset and extract images, masks, star data, WCS data, and FITS file names.
+
+3. **Preparing Images and Masks for the Model**:
+   - Convert images to 3-channel format and masks to single-channel format.
+   - Normalize the images using min-max normalization.
+
+4. **Loading the Trained Model**:
+   - Load the trained U-Net model from the saved models directory.
+
+5. **Evaluating the Model**:
+   - Evaluate the model's performance on the validation dataset by calculating loss and accuracy metrics.
+
+6. **Making Predictions**:
+   - Use the trained model to make predictions on the validation dataset.
+
+7. **Visualizing Results**:
+   - Visualize the results by plotting the original images, ground truth masks, and predicted masks.
+
+
+### Training the Model
+
+We use the `trainModel.ipynb` notebook to train our U-Net model. The notebook includes the following steps:
+
+1. **Importing Necessary Libraries and Modules**:
+   - TensorFlow and Keras for building and training the neural network.
+   - NumPy for numerical operations and handling arrays.
+   - Matplotlib for plotting and visualizing data.
+   - Custom functions from `unet`, `dataGathering`, `imageProcessing`, and `log`.
+
+2. **Initializing Lists for the Dataset**:
+   - Initialize lists to store images, masks, star data, WCS data, and FITS file names.
+
+3. **Importing the Dataset**:
+   - Use the `importDataset` function to load the dataset and extract images, masks, star data, WCS data, and FITS file names.
+
+4. **Preparing Images and Masks for the Model**:
+   - Convert images to 3-channel format and masks to single-channel format.
+   - Normalize the images using min-max normalization.
+
+5. **Building the U-Net Model**:
+   - Define and compile the U-Net model using specified hyperparameters.
+
+6. **Splitting the Stacked Images and Masks**:
+   - Split the dataset into training and validation sets using the `train_test_split` function.
+
+7. **Training the Model**:
+   - Train the U-Net model using the training dataset with early stopping to prevent overfitting.
+
+8. **Saving the Model**:
+   - Save the trained model and log the model details, including history, parameters, and saved model name.
+
+9. **Evaluating the Model**:
+   - Evaluate the model's performance on the validation dataset by calculating loss and accuracy metrics.
+
+10. **Visualizing Results**:
+    - Visualize the loss and accuracy along each epoch.
+
+
 
 ### Data Gathering
 
@@ -137,73 +218,3 @@ The `dataGathering` module contains several important functions that facilitate 
    - `importDataset`: Imports the dataset by reading FITS files from a specified directory and extracting images, masks, and star data.
 
 These functions work together to streamline the process of preparing and visualizing our dataset, ensuring that we have high-quality data for training and validating our model.
-
-### Training the Model
-
-We use the `trainModel.ipynb` notebook to train our U-Net model. The notebook includes the following steps:
-
-1. **Importing Necessary Libraries and Modules**:
-   - TensorFlow and Keras for building and training the neural network.
-   - NumPy for numerical operations and handling arrays.
-   - Matplotlib for plotting and visualizing data.
-   - Custom functions from `unet`, `dataGathering`, `imageProcessing`, and `log`.
-
-2. **Initializing Lists for the Dataset**:
-   - Initialize lists to store images, masks, star data, WCS data, and FITS file names.
-
-3. **Importing the Dataset**:
-   - Use the `importDataset` function to load the dataset and extract images, masks, star data, WCS data, and FITS file names.
-
-4. **Preparing Images and Masks for the Model**:
-   - Convert images to 3-channel format and masks to single-channel format.
-   - Normalize the images using min-max normalization.
-
-5. **Building the U-Net Model**:
-   - Define and compile the U-Net model using specified hyperparameters.
-
-6. **Splitting the Stacked Images and Masks**:
-   - Split the dataset into training and validation sets using the `train_test_split` function.
-
-7. **Training the Model**:
-   - Train the U-Net model using the training dataset with early stopping to prevent overfitting.
-
-8. **Saving the Model**:
-   - Save the trained model and log the model details, including history, parameters, and saved model name.
-
-9. **Evaluating the Model**:
-   - Evaluate the model's performance on the validation dataset by calculating loss and accuracy metrics.
-
-10. **Visualizing Results**:
-    - Visualize the loss and accuracy along each epoch.
-
-### Validating the Model
-
-We use the `validateModel.ipynb` notebook to validate our trained U-Net model. The notebook includes the following steps:
-
-1. **Importing Necessary Libraries and Modules**:
-   - TensorFlow and Keras for loading and using the trained neural network.
-   - NumPy for numerical operations and handling arrays.
-   - Matplotlib for plotting and visualizing data.
-   - Astropy for handling FITS files and WCS data.
-   - Custom functions from `dataGathering` and `imageProcessing`.
-
-2. **Loading the Dataset**:
-   - Use the `importDataset` function to load the validation dataset and extract images, masks, star data, WCS data, and FITS file names.
-
-3. **Preparing Images and Masks for the Model**:
-   - Convert images to 3-channel format and masks to single-channel format.
-   - Normalize the images using min-max normalization.
-
-4. **Loading the Trained Model**:
-   - Load the trained U-Net model from the saved models directory.
-
-5. **Evaluating the Model**:
-   - Evaluate the model's performance on the validation dataset by calculating loss and accuracy metrics.
-
-6. **Making Predictions**:
-   - Use the trained model to make predictions on the validation dataset.
-
-7. **Visualizing Results**:
-   - Visualize the results by plotting the original images, ground truth masks, and predicted masks.
-
-By following these instructions, you should be able to set up your environment, view notebooks, and handle large files effectively.

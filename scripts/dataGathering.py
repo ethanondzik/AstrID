@@ -843,11 +843,11 @@ def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
     # Create a list of all the wcs data in the dataset folder
     wcs_data = []
 
-    # Create df to store the star data inside each fits file
+    # Create an array to store the star data inside each fits file
     stars_in_image = []
 
     # Create a list of all the fits files in the dataset folder
-    fits_files = os.listdir(dataset_path)
+    fits_files = []
 
     # For all the fits files in the dataset folder specified in file_path, extract the image and mask arrays to the respective lists
     file_path = dataset_path
@@ -856,6 +856,7 @@ def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
         if file.endswith('.png'):
             os.remove(file_path + file)
         if file.startswith(dataset_name) and file.endswith('.fits'):
+            fits_files.append(file)
             images.append(extractImageArray(file_path + file))
             masks.append(extractPixelMaskArray(file_path + file))
             wcs = wcs_data.append(WCS(fits.open(file_path + file)[0].header))

@@ -79,11 +79,17 @@ def preprocessImage(image, kernel_size=(1, 1), threshold_value=100):
 
 
 # Plot the subplot results from the model
-def plot_image_mask_prediction_subplot(images, test_masks, test_images, model, wcs_data, selection = 0):
+def showPredictionComparison(images, test_masks, test_images, model, wcs_data, selection = 0, threshold = 0.5):
     image = images[selection]
     mask = test_masks[selection]
     pred_mask = model.predict(np.expand_dims(test_images[selection], axis=0))[0]
     wcs = wcs_data[selection]
+
+    # Normalize the prediction array to be between 0 and 1
+    pred_mask = (pred_mask - pred_mask.min()) / (pred_mask.max() - pred_mask.min())
+
+    # Apply the threshold to create a binary mask
+    pred_mask = (pred_mask > threshold).astype(np.uint8)
 
     fig, ax = plt.subplots(1, 3, figsize=(30, 10), subplot_kw={'projection': wcs})
     ax[0].imshow(image, cmap='gray', origin='lower')
@@ -108,11 +114,17 @@ def plot_image_mask_prediction_subplot(images, test_masks, test_images, model, w
 
 
 # Save the subplot results from the model
-def save_image_mask_prediction_subplot(images, test_masks, test_images, model, wcs_data, fits_files, selection = 0):
-    image = images[i]
+def savePredictionComparison(images, test_masks, test_images, model, wcs_data, fits_files, selection = 0, threshold = 0.5):
+    image = images[selection]
     mask = test_masks[selection]
     pred_mask = model.predict(np.expand_dims(test_images[selection], axis=0))[0]
     wcs = wcs_data[selection]
+
+    # Normalize the prediction array to be between 0 and 1
+    pred_mask = (pred_mask - pred_mask.min()) / (pred_mask.max() - pred_mask.min())
+
+    # Apply the threshold to create a binary mask
+    pred_mask = (pred_mask > threshold).astype(np.uint8)
 
     fig, ax = plt.subplots(1, 3, figsize=(30, 10), subplot_kw={'projection': wcs})
     ax[0].imshow(image, cmap='gray', origin='lower')
@@ -127,7 +139,7 @@ def save_image_mask_prediction_subplot(images, test_masks, test_images, model, w
     ax[1].coords[0].set_axislabel('RA')
     ax[1].coords[1].set_axislabel('Dec')
 
-    ax[2].imshow(pred_mask[:, :, 0], cmap='gray', origin='lower')
+    ax[2].imshow(pred_mask, cmap='gray', origin='lower')
     ax[2].set_title('Prediction')
     ax[2].coords.grid(True, color='white', ls='dotted')
     ax[2].coords[0].set_axislabel('RA')
@@ -136,16 +148,16 @@ def save_image_mask_prediction_subplot(images, test_masks, test_images, model, w
     image_title = fits_files[selection] + " Image, Mask, and Prediction"
     plt.suptitle(image_title, fontsize=24)
 
-    file_path = 'results/figures/prediction_subplot/' + fits_files[selection].replace('.fits', '.png')
+    file_path = 'results/figures/prediction_comparison/' + fits_files[selection].replace('.fits', '.png')
 
-    print(f'Saving image, mask, and prediction to {file_path}')
+    print(f'Saving Prediction Comparison: {file_path}')
 
     plt.savefig(file_path)
 
 
 
 
-def extract_star_predictions(prediction, threshold=0.5, wcs_data=None):
+def extractStarPredictions(prediction, threshold=0.5, wcs_data=None):
     # Normalize the prediction array to be between 0 and 1
     prediction = (prediction - prediction.min()) / (prediction.max() - prediction.min())
 
@@ -176,11 +188,11 @@ def extract_star_predictions(prediction, threshold=0.5, wcs_data=None):
 
 
 
-def plot_image_mask_prediction_overlay(images, test_masks, test_images, model, stars_in_image, wcs_data, fits_files, selection=0, threshold=0.05):
+def showPredictionOverlay(images, test_masks, test_images, model, stars_in_image, wcs_data, fits_files, selection=0, threshold=0.05):
     image = images[selection]
     mask = test_masks[selection]
     stars = stars_in_image[selection]
-    pred_star_data, prediction_mask = extract_star_predictions(model.predict(np.expand_dims(test_images[selection], axis=0))[0], threshold=threshold)
+    pred_star_data, prediction_mask = extractStarPredictions(model.predict(np.expand_dims(test_images[selection], axis=0))[0], threshold=threshold)
     print(np.count_nonzero(prediction_mask))
     wcs = wcs_data[selection]
 
@@ -205,7 +217,7 @@ def plot_image_mask_prediction_overlay(images, test_masks, test_images, model, s
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.75)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.6)
         ax.add_artist(Drawing_colored_circle)
 
     # Plot the image
@@ -227,7 +239,7 @@ def plot_image_mask_prediction_overlay(images, test_masks, test_images, model, s
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 4, fill=False, edgecolor='red', linewidth=0.2)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='red', linewidth=0.2)
         ax.add_artist(Drawing_colored_circle)
 
     ax.set_title(f'{fits_files[selection] + " with Star Location and Star Prediction Overlays"}')
@@ -251,11 +263,11 @@ def plot_image_mask_prediction_overlay(images, test_masks, test_images, model, s
 
 
 
-def save_image_mask_prediction_overlay(images, test_masks, test_images, model, stars_in_image, wcs_data, fits_files, selection=0, threshold=0.05):
+def savePredictionOverlay(images, test_masks, test_images, model, stars_in_image, wcs_data, fits_files, selection=0, threshold=0.05):
     image = images[selection]
     mask = test_masks[selection]
     stars = stars_in_image[selection]
-    pred_star_data, prediction_mask = extract_star_predictions(model.predict(np.expand_dims(test_images[selection], axis=0))[0], threshold=threshold)
+    pred_star_data, prediction_mask = extractStarPredictions(model.predict(np.expand_dims(test_images[selection], axis=0))[0], threshold=threshold)
     print(np.count_nonzero(prediction_mask))
     wcs = wcs_data[selection]
 
@@ -280,7 +292,7 @@ def save_image_mask_prediction_overlay(images, test_masks, test_images, model, s
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.75)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.6)
         ax.add_artist(Drawing_colored_circle)
 
     # Plot the image
@@ -302,7 +314,7 @@ def save_image_mask_prediction_overlay(images, test_masks, test_images, model, s
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 4, fill=False, edgecolor='red', linewidth=0.2)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='red', linewidth=0.2)
         ax.add_artist(Drawing_colored_circle)
 
     image_title = fits_files[selection] + " with Star Location and Star Prediction Overlays" 
@@ -323,6 +335,6 @@ def save_image_mask_prediction_overlay(images, test_masks, test_images, model, s
     
     file_path = 'results/figures/prediction_overlay/' + fits_files[selection].replace('.fits', '.png')
 
-    print(f'Saving image with mask and prediction overlays to {file_path}')
+    print(f'Saving Prediction Overlay: {file_path}')
 
     plt.savefig(file_path)

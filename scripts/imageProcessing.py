@@ -217,7 +217,7 @@ def showPredictionOverlay(images, test_masks, test_images, model, stars_in_image
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.6)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.75)
         ax.add_artist(Drawing_colored_circle)
 
     # Plot the image
@@ -239,7 +239,7 @@ def showPredictionOverlay(images, test_masks, test_images, model, stars_in_image
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='red', linewidth=0.2)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='red', linewidth=0.35)
         ax.add_artist(Drawing_colored_circle)
 
     ax.set_title(f'{fits_files[selection] + " with Star Location and Star Prediction Overlays"}')
@@ -292,7 +292,7 @@ def savePredictionOverlay(images, test_masks, test_images, model, stars_in_image
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.6)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 3, fill=False, edgecolor='blue', linewidth=0.75)
         ax.add_artist(Drawing_colored_circle)
 
     # Plot the image
@@ -314,7 +314,7 @@ def savePredictionOverlay(images, test_masks, test_images, model, stars_in_image
         if 0 <= x < x_dim and 0 <= y < y_dim:
             pixel_mask[x][y] = 1
 
-        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='red', linewidth=0.2)
+        Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 2, fill=False, edgecolor='red', linewidth=0.35)
         ax.add_artist(Drawing_colored_circle)
 
     image_title = fits_files[selection] + " with Star Location and Star Prediction Overlays" 

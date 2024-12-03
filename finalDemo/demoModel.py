@@ -1,14 +1,11 @@
 import sys
 import os
 import numpy as np
-import cv2
 import datetime
 from astropy.io import fits
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.legend_handler import HandlerPatch
-from tensorflow.keras import backend as K
-import tensorflow as tf
 from keras.initializers import he_uniform
 
 # Import custom model function
@@ -20,6 +17,12 @@ def extractImageFromFits(fits_file):
         image_data = hdul[0].data
     return image_data
 
+# Get pixel mask from fits file
+def extractPixelMaskFromFits(fits_file):
+    with fits.open(fits_file) as hdul:
+        pixel_mask = hdul['pixel_mask'].data
+        return pixel_mask
+
 def stackImages(images):
     stacked_images = np.array([np.stack([image, image, image], axis=-1) for image in images])
 
@@ -27,7 +30,7 @@ def stackImages(images):
 
     return prepared_images
 
-def extrackStarPredictions(prediction, threshold=0.4):
+def extractStarPredictions(prediction, threshold=0.4):
     # Normalize the prediction array to be between 0 and 1
     prediction = (prediction - prediction.min()) / (prediction.max() - prediction.min())
 
@@ -63,7 +66,7 @@ def showPredictionComparison(image, test_image, model, threshold=0.4, save_predi
     # Apply the threshold to create a binary mask
     pred_mask = (pred_mask > threshold).astype(np.uint8)
 
-    fig, ax = plt.subplots(1, 2, figsize=(30, 10))
+    fig, ax = plt.subplots(1, 2, figsize=(20, 8))
     ax[0].imshow(image, cmap='gray', origin='lower')
     ax[0].set_title('Image')
 
@@ -71,7 +74,6 @@ def showPredictionComparison(image, test_image, model, threshold=0.4, save_predi
     ax[1].set_title('Prediction')
 
     plt.axis('off')
-    plt.show()
 
     file_path = 'predictions/'
     filename = 'prediction_comparison.png'
@@ -81,13 +83,17 @@ def showPredictionComparison(image, test_image, model, threshold=0.4, save_predi
         date_time = now.strftime("%Y_%m_%d-%H%M%S_")
         plt.savefig(file_path + date_time + filename)
 
+    plt.show()
+
+
+
 
 def showPredictionOverlay(image, test_image, model, threshold=0.4, save_prediction=False):
-    pred_star_data, prediction_mask = extrackStarPredictions(model.predict(np.expand_dims(test_image, axis=0))[0], threshold=threshold)
-    print(np.count_nonzero(prediction_mask))
+    pred_star_data, prediction_mask = extractStarPredictions(model.predict(np.expand_dims(test_image, axis=0))[0], threshold=threshold)
+    print("Number of stars detected:", len(pred_star_data))
 
 
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(12, 12))
     ax = fig.add_subplot(111)
 
     # Plot the image
@@ -98,8 +104,6 @@ def showPredictionOverlay(image, test_image, model, threshold=0.4, save_predicti
 
     # Pixel-mask of stars
     pixel_mask = np.zeros((x_dim, y_dim))
-
-    print('Drawing')  # DEBUG
 
     for star in pred_star_data:
         pixel_coords = star
@@ -127,7 +131,6 @@ def showPredictionOverlay(image, test_image, model, threshold=0.4, save_predicti
     ax.legend([blue_circle, red_circle], ['Star Location', 'Star Prediction'], loc='upper right', handler_map={Circle: HandlerPatch(patch_func=make_legend_circle)})
     
     plt.axis('off')
-    plt.show()
 
     file_path = 'predictions/'
     filename = 'predictions_overlay.png'
@@ -137,21 +140,21 @@ def showPredictionOverlay(image, test_image, model, threshold=0.4, save_predicti
         date_time = now.strftime("%Y_%m_%d-%H%M%S_")
         plt.savefig(file_path + date_time + filename)
 
+    plt.show()
 
 
+def main():
 
-
-
-def main(image_path):
-    # Check if the image file exists
-    image_path = image_path
-    print("Image path: ", image_path)
+    # Load the image for testing    
+    test_image = np.load('test_image.npy')
+    print("Test image shape: ", test_image.shape)
     
-    model_weights = []
+    # Select the image to display
+    display_image = test_image[:, :, 0]
+    print("Display image shape: ", display_image.shape)
     
     # Load the trained model weights
-    model_weights = 'models/model_weights/FINAL_2024_11_29-0023_24_unet_model_chris_model_weights.h5'
-    print("Model weights: ", model_weights)
+    model_weights = "FINAL_2024_11_29-0023_24_unet_model_chris_model_weights.h5"
 
 
     # Define hyperparameters
@@ -177,37 +180,12 @@ def main(image_path):
     # Load the saved model weights
     model.load_weights(model_weights)
 
-
-    # Load the image
-    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-
-    # Resize the image to 512x512 if necessary
-    if image.shape != (512, 512):
-        image = cv2.resize(image, (512, 512))
-
-    # Convert the image to a numpy array
-    np.expand_dims(image, axis=0)
-
-    # Normalize the image
-    image = image / 255.0
-
-
-    # Check for GPU availability
-    if len(tf.config.list_physical_devices('GPU')) > 0:
-        print("GPU is available")
-        K.clear_session()
-        tf.config.experimental.reset_memory_stats('GPU:0')
-
-
     # Show the prediction comparison
-    showPredictionComparison(image, image, model, threshold=0.4, save_prediction=True)
+    showPredictionComparison(display_image, test_image, model, threshold=0.5, save_prediction=True)
 
     # Show the prediction overlay
-    showPredictionOverlay(image, image, model, threshold=0.4, save_prediction=True)
+    showPredictionOverlay(display_image, test_image, model, threshold=0.5, save_prediction=True)
     
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python demoModel.py <path_to_image>")
-    else:
-        main(sys.argv[1])
+    main()

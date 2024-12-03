@@ -27,10 +27,10 @@ To create a virtual environment using a specific Python version (3.10) on a serv
    ```
 
 3. **Configure the Build**:
-   Configure the build to install Python in your home directory (e.g., `~/localpython`).
+   Configure the Python build to use the local libraries
 
    ```sh
-    ./configure --prefix=$HOME/localpython
+    LDFLAGS="-L$HOME/local/lib" CPPFLAGS="-I$HOME/local/include" ./configure --prefix=$HOME/localpython
    ```
 
 4. **Compile and Install**:
@@ -84,28 +84,35 @@ finalDemo
  folder:
 
 ```sh
-# CD into the finalDemo folder
-cd finalDemo
+# CD to your home folder
+cd ~
 
-# Download Python 3.10 source code
+# Download and extract the BZip2 source code
+wget https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+tar -xvf bzip2-1.0.8.tar.gz
+cd bzip2-1.0.8
+
+# Compile and install BZip2 locally
+make
+make PREFIX=$HOME/local install
+
+# Download and extract the Python source code
 wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
-
-# Extract the tarball
 tar -xvf Python-3.10.0.tgz
 cd Python-3.10.0
 
-# Configure the build to install Python in your home directory
-./configure --prefix=$HOME/localpython
+# Configure the Python build to use the local libraries
+LDFLAGS="-L$HOME/local/lib" CPPFLAGS="-I$HOME/local/include" ./configure --prefix=$HOME/localpython
 
-# Compile and install
+# Compile and install Python
 make
 make install
 
 # Add the local Python to your PATH
 export PATH=$HOME/localpython/bin:$PATH
 
-# CD into the parent directory finalDemo
-cd ..
+# CD into thedirectory AstrID/finalDemo
+cd AstrID/finalDemo/
 
 # Create a virtual environment using the local Python 3.10
 python3.10 -m venv .venv
@@ -117,7 +124,7 @@ source .venv/bin/activate
 pip install --no-cache-dir -r requirements.txt
 
 # Run the demo script
-python3 demoModel.py finalDemo/image.png 
+python3 demoModel.py
 ```
 
 By following these steps, you should be able to create and use a virtual environment with Python 3.10 on a server without needing admin rights.

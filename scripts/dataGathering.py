@@ -139,6 +139,18 @@ def clean_dec_value(dec_value):
     valid_chars = re.compile(r'[^0-9+\-dms.]')
     return valid_chars.sub('', dec_value)
 
+def create_circular_mask(h, w, center=None, radius=None):
+    if center is None:  # use the middle of the image
+        center = (int(w/2), int(h/2))
+    if radius is None:  # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], w-center[0], h-center[1])
+
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center[0])**2 + (Y - center[1])**2)
+
+    mask = dist_from_center <= radius
+    return mask
+
 
 def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixels=512):
 
@@ -236,14 +248,44 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
 
         fig = plt.figure(figsize=(7, 7))
         ax = fig.add_subplot(111, projection=wcs)
+
+        scaling_constant = 0.2
+
+        # Calculate the min and max Jmag values
+        jmag_values = catalog_df['Jmag']
+        min_jmag = jmag_values.min()
+        max_jmag = jmag_values.max()
+
+        # Dynamically determine the min and max radius based on image dimensions
+        min_radius = 1  # Minimum radius in pixels
+        max_radius = min(x_dim, y_dim) * 0.005859375  # Maximum radius as a fraction of the smaller dimension
+
+
+        def calculate_radius(jmag, min_jmag, max_jmag, min_radius, max_radius):
+            # Normalize the jmag value
+            normalized_jmag = (jmag - min_jmag) / (max_jmag - min_jmag)
+            # Scale the normalized value to the desired range of pixel sizes
+            radius = min_radius + (normalized_jmag * (max_radius - min_radius))
+            return radius
+
         for star in stars_in_image: 
 
             pixel_coords = getPixelCoordsFromStar(star, wcs)
+            jmag = star[1]['Jmag']
 
             # Ensure the pixel coordinates are within bounds
             x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < x_dim and 0 <= y < y_dim:
-                pixel_mask[x][y] = 1
+                # pixel_mask[x][y] = 1
+
+
+                # Calculate the radius based on a normalized Jmag value
+                radius = calculate_radius(jmag, min_jmag, max_jmag, max_radius, min_radius)
+                # Create a circular mask
+                circular_mask = create_circular_mask(x_dim, y_dim, center=(x, y), radius=radius)
+                # Update the pixel mask with the circular mask
+                pixel_mask[circular_mask] = 1
+
 
             Drawing_colored_circle = plt.Circle(( pixel_coords[0] , pixel_coords[1] ), 0.1, fill=False, edgecolor='Blue')
             ax.add_artist( Drawing_colored_circle )
@@ -259,7 +301,7 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
         convert_image_to_fits(image_filename, file_path, 'star_overlay', pixels=pixels)
 
 
-        print(f"Saved {filename}.fits with pixel mask and star overlay")
+        print(f"Saved {filename}{i}.fits with pixel mask and star overlay")
         
 
 

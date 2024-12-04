@@ -155,15 +155,8 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
 
         while attempts < 100:
             try:
-                # ra = random.uniform(0, 360)
-                # dec = random.uniform(-90, 90)
                 ra, dec = get_random_coordinates()
                 coords = SkyCoord(ra, dec, unit='deg', frame='icrs')
-
-                # coords = SkyCoord(ra=172.63903944*u.deg, dec=48.98346557*u.deg, frame='icrs')
-
-
-                print('SkyView')        #DEBUG
 
 
                 # Fetch image data from SkyView
@@ -177,9 +170,6 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
                 wcs = WCS(image_hdu.header)
 
 
-                print('Vizier')        #DEBUG
-
-
                 # Fetch star data from Vizier using the 2MASS catalog
                 v = Vizier(columns=['*'])
                 v.ROW_LIMIT = -1
@@ -187,17 +177,11 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
                 catalog = catalog_list[0]
 
 
-                print('Save')        #DEBUG
-
-
                 # Save the image as a FITS file
                 image_hdu = fits.PrimaryHDU(image, header=image_hdu.header)
                 hdul = fits.HDUList([image_hdu])
                 hdul.writeto(file_path, overwrite=True)
 
-
-
-                print('Save Catalog')        #DEBUG
 
                 # Save the star catalog
                 with fits.open(file_path, mode='update') as hdul:
@@ -250,22 +234,16 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
         pixel_mask = np.zeros((x_dim, y_dim))
 
 
-        print('Drawing')        #DEBUG
-
-
         fig = plt.figure(figsize=(7, 7))
         ax = fig.add_subplot(111, projection=wcs)
         for star in stars_in_image: 
 
             pixel_coords = getPixelCoordsFromStar(star, wcs)
-            # pixel_mask[int(np.round(pixel_coords[0]))][int(np.round(pixel_coords[1]))] = 1
 
             # Ensure the pixel coordinates are within bounds
             x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < x_dim and 0 <= y < y_dim:
                 pixel_mask[x][y] = 1
-
-            # print('PIXEL COORDS: ', pixel_coords)
 
             Drawing_colored_circle = plt.Circle(( pixel_coords[0] , pixel_coords[1] ), 0.1, fill=False, edgecolor='Blue')
             ax.add_artist( Drawing_colored_circle )
@@ -279,6 +257,9 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
         
         # Convert the saved image to FITS format and append it to the FITS file
         convert_image_to_fits(image_filename, file_path, 'star_overlay', pixels=pixels)
+
+
+        print(f"Saved {filename}.fits with pixel mask and star overlay")
         
 
 

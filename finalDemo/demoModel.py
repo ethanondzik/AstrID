@@ -1,8 +1,10 @@
 import sys
 import os
-import numpy as np
 import datetime
+import getpass
+import numpy as np
 from astropy.io import fits
+from astropy.wcs import WCS
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.legend_handler import HandlerPatch
@@ -10,6 +12,33 @@ from keras.initializers import he_uniform
 
 # Import custom model function
 from models.unet import unet_model
+
+# Load the keras model
+def loadModel(model_weights):
+    # Define hyperparameters
+    hyperparameters = {
+        'input_shape': (512, 512, 3),
+        'filters': [64, 128, 256, 512, 1024],
+        'kernel_size': (3, 3),
+        'activation': 'relu',
+        'padding': 'same',
+        'initializer': he_uniform
+    }
+
+    # Create and compile the model using hyperparameters
+    model = unet_model(
+        input_shape=hyperparameters['input_shape'],
+        filters=hyperparameters['filters'],
+        kernel_size=hyperparameters['kernel_size'],
+        activation=hyperparameters['activation'],
+        padding=hyperparameters['padding'],
+        initializer=hyperparameters['initializer']
+    )
+
+    # Load the saved model weights
+    model.load_weights(model_weights)
+
+    return model
 
 # Get demo image to test the model
 def extractImageFromFits(fits_file):
@@ -22,6 +51,22 @@ def extractPixelMaskFromFits(fits_file):
     with fits.open(fits_file) as hdul:
         pixel_mask = hdul['pixel_mask'].data
         return pixel_mask
+
+# Get overlay image from fits file
+def extractWCSFromFits(fits_file):
+    with fits.open(fits_file) as hdul:
+        wcs = WCS(hdul[0].header)
+    return wcs
+
+# Get overlay image from fits file
+def extractOverlayFromFits(fits_file):
+    with fits.open(fits_file) as hdul:
+        overlay_image = hdul['star_overlay'].data
+    return overlay_image
+    
+def loadImageFromPNG(png_file):
+    image = plt.imread(png_file)
+    return image
 
 def stackImages(images):
     stacked_images = np.array([np.stack([image, image, image], axis=-1) for image in images])
@@ -57,7 +102,22 @@ def extractStarPredictions(prediction, threshold=0.4):
 
 
 # Plot the subplot results from the model
-def showPredictionComparison(image, test_image, model, threshold=0.4, save_prediction=False):
+def showPredictionComparison(fits_file, model, threshold=0.5, save_prediction=False):
+
+    # Extract the image from the fits file
+    image = extractImageFromFits(fits_file)
+    test_image = stackImages(image)
+
+    # Extract the pixel mask from the fits file
+    pixel_mask = extractPixelMaskFromFits(fits_file)
+
+    # Extract the WCS from the fits file
+    wcs = extractWCSFromFits(fits_file)
+
+    # Extract the overlay image from the fits file
+    overlay_image = extractOverlayFromFits(fits_file)
+
+    # Get the prediction mask from the model
     pred_mask = model.predict(np.expand_dims(test_image, axis=0))[0]
 
     # Normalize the prediction array to be between 0 and 1
@@ -66,38 +126,61 @@ def showPredictionComparison(image, test_image, model, threshold=0.4, save_predi
     # Apply the threshold to create a binary mask
     pred_mask = (pred_mask > threshold).astype(np.uint8)
 
-    fig, ax = plt.subplots(1, 2, figsize=(20, 8))
+    fig, ax = plt.subplots(1, 3, figsize=(30, 10), subplot_kw={'projection': wcs})
     ax[0].imshow(image, cmap='gray', origin='lower')
     ax[0].set_title('Image')
+    ax[0].coords.grid(True, color='white', ls='dotted')
+    ax[0].coords[0].set_axislabel('RA')
+    ax[0].coords[1].set_axislabel('Dec')
 
-    ax[1].imshow(pred_mask, cmap='gray', origin='lower')
-    ax[1].set_title('Prediction')
+    ax[1].imshow(pixel_mask, cmap='gray', origin='lower')
+    ax[1].set_title('Pixel Mask')
+    ax[1].coords.grid(True, color='white', ls='dotted')
+    ax[1].coords[0].set_axislabel('RA')
+    ax[1].coords[1].set_axislabel('Dec')
+
+    ax[2].imshow(pred_mask, cmap='gray', origin='lower')
+    ax[2].set_title('Prediction')
+    ax[2].coords.grid(True, color='white', ls='dotted')
+    ax[2].coords[0].set_axislabel('RA')
+    ax[2].coords[1].set_axislabel('Dec')
 
     plt.axis('off')
 
     file_path = 'predictions/'
     filename = 'prediction_comparison.png'
     if save_prediction:
+        user = getpass.getuser()
         # Date and time
         now = datetime.datetime.now()
         date_time = now.strftime("%Y_%m_%d-%H%M%S_")
-        plt.savefig(file_path + date_time + filename)
+        plt.savefig(file_path + date_time + user + filename)
 
     plt.show()
 
 
 
 
-def showPredictionOverlay(image, test_image, model, threshold=0.4, save_prediction=False):
+def showPredictionOverlay(fits_file, model, threshold=0.5, cmap='gray_r', save_prediction=False):
+    # Extract the image from the fits file
+    image = extractImageFromFits(fits_file)
+    test_image = stackImages(image)
+
+    # Extract the WCS from the fits file
+    wcs = extractWCSFromFits(fits_file)
+
+    # Extract the pixel mask from the fits file
+    pixel_mask = extractPixelMaskFromFits(fits_file)
+
     pred_star_data, prediction_mask = extractStarPredictions(model.predict(np.expand_dims(test_image, axis=0))[0], threshold=threshold)
     print("Number of stars detected:", len(pred_star_data))
-
+    # image = image[:, :, 0]
 
     fig = plt.figure(figsize=(12, 12))
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(111, projection=wcs)
 
     # Plot the image
-    ax.imshow(image, cmap='gray', origin='lower')
+    ax.imshow(image, cmap=cmap, origin='lower')
 
     # Draw red circles on the image for star predictions
     x_dim, y_dim = image.shape
@@ -115,9 +198,9 @@ def showPredictionOverlay(image, test_image, model, threshold=0.4, save_predicti
         Drawing_colored_circle = plt.Circle((pixel_coords[0], pixel_coords[1]), 4, fill=False, edgecolor='red', linewidth=0.2)
         ax.add_artist(Drawing_colored_circle)
 
-    ax.set_title(f'{"Image with Star Prediction Overlay"}')
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
+    ax.set_title(f'{fits_file} - Star Prediction Overlay')
+    ax.set_xlabel('RA')
+    ax.set_ylabel('Dec')
     ax.grid(color='white', ls='dotted')
 
     # Add legend
@@ -126,65 +209,41 @@ def showPredictionOverlay(image, test_image, model, threshold=0.4, save_predicti
 
 
     # Display a legend for the circles
-    blue_circle = Circle((0, 0), 1, fill=False, edgecolor='blue', linewidth=1)
     red_circle = Circle((0, 0), 1, fill=False, edgecolor='red', linewidth=1)
-    ax.legend([blue_circle, red_circle], ['Star Location', 'Star Prediction'], loc='upper right', handler_map={Circle: HandlerPatch(patch_func=make_legend_circle)})
-    
-    plt.axis('off')
+    ax.legend([red_circle], ['Star Prediction'], loc='upper right', handler_map={Circle: HandlerPatch(patch_func=make_legend_circle)})
 
     file_path = 'predictions/'
-    filename = 'predictions_overlay.png'
+    filename = '_predictions_overlay.png'
     if save_prediction:
+        # Get user
+        user = getpass.getuser()
         # Date and time
         now = datetime.datetime.now()
         date_time = now.strftime("%Y_%m_%d-%H%M%S_")
-        plt.savefig(file_path + date_time + filename)
+        plt.savefig(file_path + date_time + user + "_" + cmap + filename)
 
     plt.show()
 
 
 def main():
 
-    # Load the image for testing    
-    test_image = np.load('test_image.npy')
-    print("Test image shape: ", test_image.shape)
-    
-    # Select the image to display
-    display_image = test_image[:, :, 0]
-    print("Display image shape: ", display_image.shape)
+    # Define the test file
+    fits_file = 'validate1.fits'
     
     # Load the trained model weights
     model_weights = "FINAL_2024_11_29-0023_24_unet_model_chris_model_weights.h5"
 
+    # Load the model
+    model = loadModel(model_weights)
 
-    # Define hyperparameters
-    hyperparameters = {
-        'input_shape': (512, 512, 3),
-        'filters': [64, 128, 256, 512, 1024],
-        'kernel_size': (3, 3),
-        'activation': 'relu',
-        'padding': 'same',
-        'initializer': he_uniform
-    }
+    # Save the prediction comparison
+    showPredictionComparison(fits_file, model, threshold=0.5, save_prediction=True)
 
-    # Create and compile the model using hyperparameters
-    model = unet_model(
-        input_shape=hyperparameters['input_shape'],
-        filters=hyperparameters['filters'],
-        kernel_size=hyperparameters['kernel_size'],
-        activation=hyperparameters['activation'],
-        padding=hyperparameters['padding'],
-        initializer=hyperparameters['initializer']
-    )
-
-    # Load the saved model weights
-    model.load_weights(model_weights)
-
-    # Show the prediction comparison
-    showPredictionComparison(display_image, test_image, model, threshold=0.5, save_prediction=True)
-
-    # Show the prediction overlay
-    showPredictionOverlay(display_image, test_image, model, threshold=0.5, save_prediction=True)
+    # Save the prediction overlay
+    showPredictionOverlay(fits_file, model, threshold=0.5, cmap='gray', save_prediction=True)
+    showPredictionOverlay(fits_file, model, threshold=0.5, cmap='gray_r', save_prediction=True)
+    showPredictionOverlay(fits_file, model, threshold=0.5, cmap='viridis', save_prediction=True)
+    showPredictionOverlay(fits_file, model, threshold=0.5, cmap='YlGn', save_prediction=True)
     
 
 if __name__ == "__main__":

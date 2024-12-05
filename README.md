@@ -148,11 +148,11 @@ We use the `trainModel.ipynb` notebook to train our U-Net model. The notebook in
 
 ### Data Gathering
 
-The `getStarData` function is a crucial part of our data preparation pipeline. It is responsible for generating and saving FITS files that contain both image data and star catalog data. These FITS files are then used to train our model.
+The `createStarDataset` function is a crucial part of our data preparation pipeline. It is responsible for generating and saving FITS files that contain both image data and star catalog data. These FITS files are then used to train our model.
 
-#### Functionality of `getStarData`
+#### Functionality of `createStarDataset`
 
-The `getStarData` function performs the following steps:
+The `createStarDataset` function performs the following steps:
 
 1. **Directory Creation**:
    - Creates a new directory named `data` if it does not already exist. This directory will store the generated FITS files.
@@ -172,20 +172,20 @@ The `getStarData` function performs the following steps:
 6. **Star Overlay Plot**:
    - Generates a plot of the image with star positions overlaid. This plot is saved as an image file and then converted to FITS format, appended to the original FITS file.
 
-#### Using `getStarData` to Prepare the Dataset
+#### Using `createStarDataset` to Prepare the Dataset
 
-To prepare the dataset for training the model, we use the `getStarData` function with the parameter `'data'`. This generates a set of FITS files containing image data, star catalog data, and pixel masks. These files are stored in the `data/fits/` directory.
+To prepare the dataset for training the model, we use the `createStarDataset` function with the parameter `'data'`. This generates a set of FITS files containing image data, star catalog data, and pixel masks. These files are stored in the `data/fits/` directory.
 
 ```python
 # Generate training data
-getStarData(catalog_type='II/246', iterations=250, filename='data')
+createStarDataset(catalog_type='II/246', iterations=20, file_path='data/fits/data/', filename='data', pixels=1024)
 ```
 
-For validation purposes, we use the `getStarData` function with the filename parameter `'validate'`. This generates a separate set of FITS files for validation, ensuring that the files have the name `validate0.fits` for the `validateModel.ipynb` notebook.
+For validation purposes, we use the `createStarDataset` function with the filename parameter `'validate'`. This generates a separate set of FITS files for validation, ensuring that the files have the name `validate0.fits` for the `validateModel.ipynb` notebook.
 
 ```python
 # Generate validation data
-getStarData(catalog_type='II/246', iterations=50, filename='validate')
+createStarDataset(catalog_type='II/246', iterations=50, file_path='data/fits/validate/', filename='validate', pixels=1024)
 ```
 
 ### Importing Images and Star Data from the Dataset
@@ -199,7 +199,7 @@ The `dataGathering` module contains several important functions that facilitate 
 1. **Data Extraction Functions**:
    - `extractImageArray`: Extracts image data from FITS files.
    - `extractPixelMaskArray`: Extracts pixel mask data from FITS files.
-   - `extract_star_catalog`: Extracts star catalog data from FITS files.
+   - `extractStarCatalog`: Extracts star catalog data from FITS files.
 
 2. **Data Import Function**:
    - `importDataset`: Imports the dataset by reading FITS files from a specified directory and extracting images, masks, and star data.
@@ -214,7 +214,7 @@ The `dataGathering` module contains several important functions that facilitate 
    - `displayPixelMaskOverlayPlot`: Displays an overlay plot of the image and pixel mask.
 
 4. **Star Data Functions**:
-   - `getStarData`: Generates and saves FITS files containing image data and star catalog data.
+   - `createStarDataset`: Generates and saves FITS files containing image data and star catalog data.
    - `importDataset`: Imports the dataset by reading FITS files from a specified directory and extracting images, masks, and star data.
 
 These functions work together to streamline the process of preparing and visualizing our dataset, ensuring that we have high-quality data for training and validating our model.

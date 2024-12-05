@@ -18,6 +18,13 @@ def load_fits_image(fits_file):
     hdul.close()
     return image_data
 
+def load_fits_prediction(fits_file):
+
+    hdul = fits.open(fits_file)
+    prediction_data = hdul[0].data  # Image is in the primary HDU
+    hdul.close()
+    return prediction_data
+
 def normalize_image(image_data):
 
     normalized_image = (image_data - np.min(image_data)) / (np.max(image_data) - np.min(image_data)) * 255
@@ -116,6 +123,8 @@ def create_dash_app(fig, available_fits_files):
 #----------------Main-----------------------
 
 def main():
+
+    #---------------------- Load the data file-------------------------------------
     
     # List FITS files in the 'data/fits' directory
     fits_dir = os.path.join('data', 'fits')
@@ -124,12 +133,23 @@ def main():
     # Sort files numerically based on the number in the filename
     available_fits_files.sort(key=lambda x: int(re.findall(r'\d+', x)[0]))
 
-    # Process the default FITS file
+    #---------------------- Load the correspoinding validate file-------------------------------------
+    validate_dir = os.path.join('data', 'fits')
+    available_validate_files = [file for file in os.listdir(validate_dir) if file.endswith(".fits") and file.startswith("validate")]
+
+
+    # Process the data FITS file
     fits_file = os.path.join(fits_dir, available_fits_files[0])
     image_data = load_fits_image(fits_file)
     normalized_image = normalize_image(image_data)
-    pixel_mask = create_pixel_mask(image_data)
-    df = pixel_mask_to_dataframe(pixel_mask)
+    data_pixel_mask = create_pixel_mask(image_data)
+    df = pixel_mask_to_dataframe(data_pixel_mask)
+
+    # Process the validate fits file
+    validate_file =  os.path.join(validate_dir, available_fits_files[0])
+    validate_data = load_fits_prediction(validate_file)
+    # validate_pixel_mask = 
+    #------------ NEED TO FIGURE OUT HOW THE PREDICTION IS STORED---------
 
     # Image plot and add pixel mask
     fig = create_image_plot(normalized_image)

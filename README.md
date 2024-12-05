@@ -2,7 +2,7 @@
 *AstrID:* A project focused on identifying and classifying astronomical objects using data from various space catalogs. Leveraging machine learning, AstrID aims to enhance our understanding of stars, galaxies, and other celestial phenomena.
 
 ## Project Goals and Objectives
-The primary goal of AstrID is to develop a robust system for identifying and classifying various astronomical objects, such as stars and galaxies, using data from space catalogs. A stretch goal of the project is to identify potential black hole candidates using advanced machine learning techniques.
+The primary goal of AstrID is to develop a robust system for identifying the location of astronomical objects, primarily stars, in images of space taken by terrestrial and satellite radio-telescopes. A stretch goal of the project is to identify potential black hole candidates using advanced machine learning techniques.
 
 ## Features
 - **Data Retrieval**: Fetch high-resolution images and data from space catalogs like Hipparcos and 2MASS.
@@ -12,6 +12,54 @@ The primary goal of AstrID is to develop a robust system for identifying and cla
 - **Model Evaluation**: Evaluate the performance of trained models on validation and test datasets.
 - **Prediction**: Make predictions on new astronomical data using trained models.
 - **Black Hole Identification**: (Stretch Goal) Identify potential black hole candidates.
+
+## Results 
+
+### The Dataset
+Our team was unable to find a pre-compiled dataset that met our needs. Instead, we set out to compile our own dataset for use in this project. Using the AstroPy library, we were able to query both the SkyView and Vizier databases. Using SkyView, we were able to download a random set of 250 images from across the sky, by randomly generating world-coordinates and pulling images from that location. For each image, we then queried the Vizier star catalog at the same coordinates, downloading a list of which stars were present in each image, and what their world-coordinates were. 
+
+By converting from the world coordinates to the corresponding coordinates in the SkyView image, we were able to generate a 'mask' or the ground truth image indicating which stars were where. Using the .fits image format, we were able to save the original image, the mask, and the star data table in the same file.
+
+Our FITS Components:
+
+1. Primary HDU (Header Data Unit)
+    - Contains the main image data and associated metadata (2D array of pixel values)
+
+2. Star Catalog HDU:
+    - Information about stars in the image, e.g, coordinates and magnitudes. (binary table)
+
+3. Pixel Mask HDU:
+    - Image containing a pixel mask/ground truth indicating the positions of stars in the image. (2D array of pixel values where pixels corresponding to stars are set to 1)
+
+An example of this can be seen in the image below, where a random image from SkyView is overlaid with the stars in that region listed in the Vizier catalog. Each blue dot indicates the location of a star, according to the vizier catalog.  
+
+![output](https://github.com/user-attachments/assets/ff1cbc73-7de3-4342-a5ae-0800b48c0504)
+
+
+### Model and Training
+Our team opted to use a Convolutional Neural Network (CNN) model to make predictions, specifically a U-Net model. We implemented this model using the Keras library, which made the initial programming simpler than a more robust library, but later caused difficulties when we tried more advanced functionality such as implementing class weights or using more bespoke accuracy metrics. We experimented with a variety of hyper-paremeters, and implemented a logging functionality that recorded the results of each training run. This allowed us to quickly identify the best performing models when tuning the model's performance. We found that learning rate and class weights had the most impact on the performance of the model, but we experimented with tuning other parameters as well. 
+
+![image](https://github.com/user-attachments/assets/90c17837-e986-462c-8cb9-232c0000aaeb)
+
+Our model did take considerable time to train using a CPU, especially as running 30+ epochs seems to be the optimal performance window. Some of our team members were able to run the training on a GPU, which considerably sped up the training process and is recommended. We took additional steps to optimize the training process, such as using early-stopping, which would stop training if no improvement in the model was observed after 10 consecutive training epochs. Given more time, we would have liked to experiment with other metrics for performance, such as f-1 score. 
+
+![image](https://github.com/user-attachments/assets/599f839c-a268-4c7a-b93e-2a38009bdcfd)
+![image](https://github.com/user-attachments/assets/0242d8ea-fb3a-4a71-af8c-3463bbdbe4e4)
+
+
+### Predictions
+Our final model was able to predict the location of stars with reasonable accuracy. In the below image, the blue circles indicate the known-location of stars from the Vizier catalog, and the red circles indicate our models' predicted locations of stars. Our model does struggle with the interpretation of photographic anomalies, such as the lens flare visible in the below image. 
+
+However, anomalous images were sparse in our dataset, and training on a dataset with more images or even identifying the anomalies in our ground-truth mask may help reduce the false prediction of stars in these locations. Interestingly, our model was able to pick up on stars and star-like objects present in the image, but not listed in the Vizier catalog. This indicates that our model is performing well, and may provide a useful analysis of images from uncataloged regions of space. 
+
+![StarOverlay](https://github.com/user-attachments/assets/0ceaa54a-ccb7-4c15-8036-89cc033983ff)
+![2024_12_05-093117_chris_gray_r_predictions_overlay](https://github.com/user-attachments/assets/2030079b-88dc-4a76-bbb5-08b270209ac0)
+
+Our team found a substantial improvement in the prediction accuracy when we account for the intensity (vmag value) of a star when generating the ground-truth, or 'mask'. This can be observed in the below image, where the locations of stars indicated in the 'mask' are of varying sizes. Previously, the locations of stars were indicated with a single pixel, which caused our model to have problems identifying larger stars in the image. 
+
+![validate3](https://github.com/user-attachments/assets/8e4e5480-506f-4d54-849b-b9fa624ca4c1)
+![validate3overlay](https://github.com/user-attachments/assets/5933d098-c27d-403b-8b99-e36c3ac02199)
+
 
 ## Instructions
 

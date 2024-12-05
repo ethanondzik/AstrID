@@ -17,8 +17,16 @@ from models.unet import unet_model
 from dataGathering import extractStarCatalog, getStarsInImage, getCoordRangeFromPixels, getPixelCoordsFromStar
 
 
-# Load the keras model
 def loadModel(model_weights):
+    """
+    Load the Keras model with the specified weights.
+
+    Parameters:
+    model_weights (str): The path to the model weights file.
+
+    Returns:
+    keras.Model: The loaded Keras model.
+    """
     # Define hyperparameters
     hyperparameters = {
         'input_shape': (1024, 1024, 3),
@@ -44,47 +52,104 @@ def loadModel(model_weights):
 
     return model
 
-# Get demo image to test the model
 def extractImageFromFits(fits_file):
+    """
+    Extract the image data from a FITS file.
+
+    Parameters:
+    fits_file (str): The path to the FITS file.
+
+    Returns:
+    numpy.ndarray: The image data extracted from the FITS file.
+    """
     with fits.open(fits_file) as hdul:
         image_data = hdul[0].data
     return image_data
 
-# Get pixel mask from fits file
 def extractPixelMaskFromFits(fits_file):
+    """
+    Extract the pixel mask from a FITS file.
+
+    Parameters:
+    fits_file (str): The path to the FITS file.
+
+    Returns:
+    numpy.ndarray: The pixel mask extracted from the FITS file.
+    """
     with fits.open(fits_file) as hdul:
         pixel_mask = hdul['pixel_mask'].data
         return pixel_mask
 
-# Get overlay image from fits file
 def extractWCSFromFits(fits_file):
+    """
+    Extract the WCS (World Coordinate System) information from a FITS file.
+
+    Parameters:
+    fits_file (str): The path to the FITS file.
+
+    Returns:
+    astropy.wcs.WCS: The WCS object extracted from the FITS file.
+    """
     with fits.open(fits_file) as hdul:
         wcs = WCS(hdul[0].header)
     return wcs
 
-# Get overlay image from fits file
 def extractOverlayFromFits(fits_file):
+    """
+    Extract the overlay image from a FITS file.
+
+    Parameters:
+    fits_file (str): The path to the FITS file.
+
+    Returns:
+    numpy.ndarray: The overlay image extracted from the FITS file.
+    """
     with fits.open(fits_file) as hdul:
         overlay_image = hdul['star_overlay'].data
     return overlay_image
 
-# Extract stars from fits file
 def extractStarsFromFits(fits_file):
+    """
+    Extract the stars from a FITS file.
+
+    Parameters:
+    fits_file (str): The path to the FITS file.
+
+    Returns:
+    list: A list of stars in the image.
+    """
     with fits.open(fits_file) as hdul:
         wcs = WCS(hdul[0].header)
         stars = getStarsInImage(wcs, extractStarCatalog(fits_file).to_pandas(), getCoordRangeFromPixels(WCS(fits.open(fits_file)[0].header)))
     return stars
 
-# Stack the images to be 3D
 def stackImages(images):
+    """
+    Stack images to create a 3D array.
+
+    Parameters:
+    images (list of numpy.ndarray): List of 2D image arrays.
+
+    Returns:
+    numpy.ndarray: 3D array of stacked images.
+    """
     stacked_images = np.array([np.stack([image, image, image], axis=-1) for image in images])
 
     prepared_images = np.array(stacked_images)
 
     return prepared_images
 
-# Extract the star predictions from the model
-def extractStarPredictions(prediction, threshold=0.4):
+def extractStarPredictions(prediction, threshold=0.5):
+    """
+    Extract star predictions from a prediction array.
+
+    Parameters:
+    prediction (numpy.ndarray): Prediction array.
+    threshold (float, optional): Threshold value for star detection. Default is 0.4.
+
+    Returns:
+    tuple: A tuple containing the star data and the prediction mask.
+    """
     # Normalize the prediction array to be between 0 and 1
     prediction = (prediction - prediction.min()) / (prediction.max() - prediction.min())
 
@@ -110,8 +175,16 @@ def extractStarPredictions(prediction, threshold=0.4):
     return star_data, prediction_mask
 
 
-# Plot the subplot results from the model
 def getPredictionComparison(fits_file, model, threshold=0.5, save_prediction=False):
+    """
+    Generate a comparison plot of the original image, pixel mask, and model prediction.
+
+    Parameters:
+    fits_file (str): The path to the FITS file.
+    model (keras.Model): The trained model.
+    threshold (float, optional): Threshold value for prediction. Default is 0.5.
+    save_prediction (bool, optional): Whether to save the prediction plot. Default is False.
+    """
     # Extract the image from the fits file
     image = extractImageFromFits(fits_file)
     test_image = stackImages(image)
@@ -163,18 +236,24 @@ def getPredictionComparison(fits_file, model, threshold=0.5, save_prediction=Fal
 
     plt.show()
 
-# Plot the prediction overlay
 def getPredictionOverlay(fits_file, model, threshold=0.5, cmap='gray_r', save_prediction=False):
+    """
+    Generate an overlay plot of the original image with star locations and model predictions.
+
+    Parameters:
+    fits_file (str): The path to the FITS file.
+    model (keras.Model): The trained model.
+    threshold (float, optional): Threshold value for prediction. Default is 0.5.
+    cmap (str, optional): Colormap for the image. Default is 'gray_r'.
+    save_prediction (bool, optional): Whether to save the prediction plot. Default is False.
+    """
     # Extract the image from the fits file
     image = extractImageFromFits(fits_file)
     test_image = stackImages(image)
-
     # Extract the WCS from the fits file
     wcs = extractWCSFromFits(fits_file)
-
     # Extract the pixel mask from the fits file
     pixel_mask = extractPixelMaskFromFits(fits_file)
-
     # Extract the stars from the fits file
     stars = extractStarsFromFits(fits_file)
 
@@ -233,7 +312,6 @@ def getPredictionOverlay(fits_file, model, threshold=0.5, cmap='gray_r', save_pr
     def make_legend_circle(legend, orig_handle, xdescent, ydescent, width, height, fontsize):
         return Circle((width / 2, height / 2), 0.25 * height, fill=False, edgecolor=orig_handle.get_edgecolor(), linewidth=orig_handle.get_linewidth())
 
-
     # Display a legend for the circles
     blue_circle = Circle((0, 0), 1, fill=False, edgecolor='blue', linewidth=1)
     red_circle = Circle((0, 0), 1, fill=False, edgecolor='red', linewidth=1)
@@ -258,7 +336,6 @@ def getPredictionOverlay(fits_file, model, threshold=0.5, cmap='gray_r', save_pr
     else:
         plt.show()
 
-
 def main():
 
     # Define the test file
@@ -278,7 +355,6 @@ def main():
     getPredictionOverlay(fits_file, model, threshold=0.5, cmap='gray_r', save_prediction=True)
     getPredictionOverlay(fits_file, model, threshold=0.5, cmap='viridis', save_prediction=True)
     getPredictionOverlay(fits_file, model, threshold=0.5, cmap='YlGn', save_prediction=True)
-    
 
 if __name__ == "__main__":
     main()

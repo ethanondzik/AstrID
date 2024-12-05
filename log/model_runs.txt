@@ -1585,3 +1585,78 @@ Loss and accuracy:
 	Training accuracy: 0.9802851676940918
 	Validation accuracy: 0.8761043548583984
 
+Model: 2024_12_04-0020_16_unet_model_chris.keras Model run at: 2024/12/04 00:20:55 By user: chris 
+Hyper-parameters:
+	input_shape: (1024, 1024, 3)
+	filters: [64, 128, 256, 512, 1024]
+	kernel_size: (3, 3)
+	activation: relu
+	padding: same
+	initializer: <class 'keras.src.initializers.initializers.HeUniform'>
+	learning_rate: 0.001
+	optimizer: <keras.src.optimizers.adam.Adam object at 0x7f4847ee3730>
+	loss: binary_crossentropy
+	weights: {0: 1.0, 1: 5.5}
+	metrics: ['accuracy']
+	epochs: 1000
+	batch_size: 1
+	early_stopping_patience: 10
+	test_size: 0.2
+	random_state: 0
+	seed: 42
+Loss and accuracy:
+	Training loss: 0.044941335916519165
+	Validation loss: 0.011274346150457859
+	Training accuracy: 0.9986053705215454
+	Validation accuracy: 0.9992103576660156
+
+Model: 2024_12_04-0027_16_unet_model_chris.keras Model run at: 2024/12/04 00:27:23 By user: chris 
+Hyper-parameters:
+	input_shape: (1024, 1024, 3)
+	filters: [64, 128, 256, 512, 1024]
+	kernel_size: (3, 3)
+	activation: relu
+	padding: same
+	initializer: <class 'keras.src.initializers.initializers.HeUniform'>
+	learning_rate: 0.001
+	optimizer: <keras.src.optimizers.adam.Adam object at 0x7ff19a2a72b0>
+	loss: binary_crossentropy
+	weights: {0: 1.0, 1: 5.5}
+	metrics: ['accuracy']
+	epochs: 1000
+	batch_size: 1
+	early_stopping_patience: 10
+	test_size: 0.2
+	random_state: 0
+	seed: 42
+Loss and accuracy:
+	Training loss: 0.20251554250717163
+	Validation loss: 0.1795070320367813
+	Training accuracy: 0.9985377788543701
+	Validation accuracy: 0.9991765022277832
+
+Model: 2024_12_04-0236_16_unet_model_chris.keras Model run at: 2024/12/04 02:36:34 By user: chris 
+Hyper-parameters:
+	input_shape: (1024, 1024, 3)
+	filters: [64, 128, 256, 512, 1024]
+	kernel_size: (3, 3)
+	activation: relu
+	padding: same
+	initializer: <class 'keras.src.initializers.initializers.HeUniform'>
+	learning_rate: 0.001
+	optimizer: <keras.src.optimizers.adam.Adam object at 0x7fa39a7cb310>
+	loss: binary_crossentropy
+	weights: {0: 1.0, 1: 5.5}
+	metrics: ['accuracy']
+	epochs: 1000
+	batch_size: 1
+	early_stopping_patience: 10
+	test_size: 0.2
+	random_state: 0
+	seed: 42
+Loss and accuracy:
+	Training loss: 0.13020901381969452
+	Validation loss: 0.052865736186504364
+	Training accuracy: 0.9631860256195068
+	Validation accuracy: 0.9727518558502197
+

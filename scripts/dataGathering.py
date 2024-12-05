@@ -25,7 +25,7 @@ import pandas as pd
 """
 Possible function imports from this file:
 # Import custom functions to extract our Image arrays and Pixel Mask arrays from our created fits files dataset
-from dataGathering import extractImageArray, extractPixelMaskArray, extract_star_catalog
+from dataGathering import extractImageArray, extractPixelMaskArray, extractStarCatalog
 from dataGathering import createStarDataset, getCoordRangeFromPixels, getStarsInImage, getPixelCoordsFromStar, getImagePlot, getPixelMaskPlot
 from dataGathering import displayRawImage, displayRawPixelMask, displayImagePlot, displayPixelMaskPlot, displayPixelMaskOverlayPlot
 from dataGathering import saveFitsImages, importDataset, printFitsHeader, printFitsContents, printStarData
@@ -35,25 +35,24 @@ from dataGathering import importDataset
 
 """
 
-
-
-
+# Set the default plot style
 plt.style.use(astropy_mpl_style)
 
 
-def save_plot_as_image(ax, filename, pixels=512):
+def savePlotAsImage(ax, filename, pixels=1024):
     """
-    Save the plot as an image file with specified dimensions.
+    Save a Matplotlib plot as an image file.
+
+    This function saves the plot associated with the given Axes object `ax` as a PNG image file.
+    It temporarily switches to the 'Agg' backend to render the plot without displaying it.
 
     Parameters:
-    ----------
-    ax : matplotlib.axes.Axes
-        The Axes object containing the plot.
-    filename : str
-        The filename for the saved image.
-    pixels : int
-        The width and height of the image in pixels.
+    ax (matplotlib.axes.Axes): The Axes object containing the plot to save.
+    filename (str): The base filename for the output image. The function will replace the '.fits' extension with '.png'.
+    pixels (int, optional): The size of the output image in pixels. Default is 1024.
 
+    Returns:
+    str: The filename of the saved image.
     """
     plt.close('all')
     # Temporarily switch to the Agg backend
@@ -73,18 +72,15 @@ def save_plot_as_image(ax, filename, pixels=512):
     return image_filename
 
 
-def convert_image_to_fits(image_filename, fits_filename, hdu_name, pixels=512):
+def convertImageToFits(image_filename, fits_filename, hdu_name, pixels=1024):
     """
-    Convert the saved image to FITS format and append it to the FITS file.
+    Convert a saved image file to FITS format and append it to an existing FITS file.
 
     Parameters:
-    ----------
-    image_filename : str
-        The filename of the saved image.
-    fits_filename : str
-        The filename of the FITS file.
-    hdu_name : str
-        The name of the HDU to be added to the FITS file.
+    image_filename (str): The filename of the saved image.
+    fits_filename (str): The filename of the existing FITS file.
+    hdu_name (str): The name of the HDU to create.
+    pixels (int, optional): The size of the output image in pixels. Default is 512.
     """
     # Read the saved image file
     image_data = cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE)
@@ -101,11 +97,19 @@ def convert_image_to_fits(image_filename, fits_filename, hdu_name, pixels=512):
         hdul.flush()
 
 
-def get_random_coordinates(avoid_galactic_plane=True):
+def getRandomCoordinates(avoid_galactic_plane=True):
+    """
+    Generate random sky coordinates, optionally avoiding the galactic plane.
+
+    Parameters:
+    avoid_galactic_plane (bool, optional): Whether to avoid the galactic plane. Default is True.
+
+    Returns:
+    tuple: A tuple containing the RA and Dec coordinates.
+    """
     if avoid_galactic_plane:
         while True:
             ra = random.uniform(0, 360)
-            # dec = random.uniform(-90, 90)
             # Limit dec upper and lower bound to avoid the "galactic plane"
             dec = random.uniform(-60, 60)
             coords = SkyCoord(ra=ra*u.deg, dec=dec*u.deg, frame='icrs')
@@ -119,29 +123,56 @@ def get_random_coordinates(avoid_galactic_plane=True):
     return ra, dec
 
 
-
-def clean_dec_value(dec_value):
+def cleanDecValue(dec_value):
     """
-    Clean up the declination value by removing extraneous spaces.
+    Clean the declination value by removing invalid characters.
 
     Parameters:
-    ----------
-    dec_value : str
-        The declination value to be cleaned.
+    dec_value (str): The declination value to clean.
 
     Returns:
-    -------
-    str
-        The cleaned declination value.
+    str: The cleaned declination value.
     """
-
     # Regular expression to keep only valid characters
     valid_chars = re.compile(r'[^0-9+\-dms.]')
     return valid_chars.sub('', dec_value)
 
 
-def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixels=512):
+def createCircularMask(h, w, center=None, radius=None):
+    """
+    Create a circular mask.
 
+    Parameters:
+    h (int): The height of the mask.
+    w (int): The width of the mask.
+    center (tuple, optional): The center of the circle. Default is the center of the image.
+    radius (int, optional): The radius of the circle. Default is the smallest distance between the center and image walls.
+
+    Returns:
+    numpy.ndarray: A boolean array representing the circular mask.
+    """
+    if center is None:  # use the middle of the image
+        center = (int(w/2), int(h/2))
+    if radius is None:  # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], w-center[0], h-center[1])
+
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center[0])**2 + (Y - center[1])**2)
+
+    mask = dist_from_center <= radius
+    return mask
+
+
+def createStarDataset(catalog_type='II/246', iterations=1, file_path='data/fits/data/', filename='data', pixels=512):
+    """
+    Create a dataset of star images and pixel masks.
+
+    Parameters:
+    catalog_type (str, optional): The catalog type to use. Default is 'II/246'.
+    iterations (int, optional): The number of iterations to run. Default is 1.
+    filename (str, optional): The base filename for the output files. Default is 'data'.
+    pixels (int, optional): The size of the output images in pixels. Default is 512.
+    """
     # Create a new directory to store the
     if not os.path.exists('data'):
         os.makedirs('data')
@@ -150,20 +181,13 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
     for i in range(iterations):
 
         filename_str = filename + str(i)
-        file_path = 'data/fits/' + filename_str + '.fits'
+        file_path = file_path + filename_str + '.fits'
         attempts = 0
 
         while attempts < 100:
             try:
-                # ra = random.uniform(0, 360)
-                # dec = random.uniform(-90, 90)
-                ra, dec = get_random_coordinates()
+                ra, dec = getRandomCoordinates()
                 coords = SkyCoord(ra, dec, unit='deg', frame='icrs')
-
-                # coords = SkyCoord(ra=172.63903944*u.deg, dec=48.98346557*u.deg, frame='icrs')
-
-
-                print('SkyView')        #DEBUG
 
 
                 # Fetch image data from SkyView
@@ -177,17 +201,11 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
                 wcs = WCS(image_hdu.header)
 
 
-                print('Vizier')        #DEBUG
-
-
                 # Fetch star data from Vizier using the 2MASS catalog
                 v = Vizier(columns=['*'])
                 v.ROW_LIMIT = -1
                 catalog_list = v.query_region(coords, radius=0.35 * u.deg, catalog=catalog_type)
                 catalog = catalog_list[0]
-
-
-                print('Save')        #DEBUG
 
 
                 # Save the image as a FITS file
@@ -196,13 +214,10 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
                 hdul.writeto(file_path, overwrite=True)
 
 
-
-                print('Save Catalog')        #DEBUG
-
                 # Save the star catalog
                 with fits.open(file_path, mode='update') as hdul:
                     # Sanitize the header if necessary
-                    sanitized_catalog = Table(catalog, meta=sanitize_header(catalog.meta))
+                    sanitized_catalog = Table(catalog, meta=sanitizeHeader(catalog.meta))
                     
                     # Create a binary table HDU for the star catalog
                     star_hdu = fits.BinTableHDU(sanitized_catalog, name='STAR_CATALOG')
@@ -232,12 +247,12 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
 
             except HTTPError as e:
                 if e.code == 404:
-                    print(f"HTTP Error 404: Not Found. Generating new coordinates and retrying...)")
-                    attempts += 1
+                    print(f"HTTP Error 404: Not Found. Generating new coordinates and retrying...")
+                    print(f"HTTP Error 404: Not Found. Generating new coordinates and retrying...")
                 else:
                     raise e  # Re-raise the exception if it's not a 404 error
             except Exception as e:
-                print(f"An error occurred: {e}. Generating new coordinates and retrying...)")
+                print(f"An error occurred: {e}. Generating new coordinates and retrying...")
                 attempts += 1
 
 
@@ -250,22 +265,44 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
         pixel_mask = np.zeros((x_dim, y_dim))
 
 
-        print('Drawing')        #DEBUG
-
-
         fig = plt.figure(figsize=(7, 7))
         ax = fig.add_subplot(111, projection=wcs)
+
+        # Calculate the min and max Jmag values
+        jmag_values = catalog_df['Jmag']
+        min_jmag = jmag_values.min()
+        max_jmag = jmag_values.max()
+
+        # Dynamically determine the min and max radius based on image dimensions
+        min_radius = 1  # Minimum radius in pixels
+        max_radius = min(x_dim, y_dim) * 0.005859375  # Maximum radius as a fraction of the smaller dimension
+
+
+        def calculateRadius(jmag, min_jmag, max_jmag, min_radius, max_radius):
+            # Normalize the jmag value (inverted)
+            normalized_jmag = (max_jmag - jmag) / (max_jmag - min_jmag)
+            # Scale the normalized value to the desired range of pixel sizes
+            radius = min_radius + (normalized_jmag * (max_radius - min_radius))
+            return radius
+
         for star in stars_in_image: 
 
             pixel_coords = getPixelCoordsFromStar(star, wcs)
-            # pixel_mask[int(np.round(pixel_coords[0]))][int(np.round(pixel_coords[1]))] = 1
+            jmag = star[1]['Jmag']
 
             # Ensure the pixel coordinates are within bounds
             x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < x_dim and 0 <= y < y_dim:
-                pixel_mask[x][y] = 1
+                # pixel_mask[x][y] = 1   # Previously was setting the pixel mask to 1 at the star's pixel coordinates
 
-            # print('PIXEL COORDS: ', pixel_coords)
+                # Now we will create a circular mask around the star's pixel coordinates
+                # Calculate the radius based on a normalized Jmag value
+                radius = calculateRadius(jmag, min_jmag, max_jmag, min_radius, max_radius)
+                # Create a circular mask
+                circular_mask = createCircularMask(x_dim, y_dim, center=(x, y), radius=radius)
+                # Update the pixel mask with the circular mask
+                pixel_mask[circular_mask] = 1
+
 
             Drawing_colored_circle = plt.Circle(( pixel_coords[0] , pixel_coords[1] ), 0.1, fill=False, edgecolor='Blue')
             ax.add_artist( Drawing_colored_circle )
@@ -275,10 +312,13 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
             ax.grid(color='white', ls='dotted')
 
         # Save the plot as an image file
-        image_filename = save_plot_as_image(ax, file_path)
+        image_filename = savePlotAsImage(ax, file_path, pixels=pixels)
         
         # Convert the saved image to FITS format and append it to the FITS file
-        convert_image_to_fits(image_filename, file_path, 'star_overlay', pixels=pixels)
+        convertImageToFits(image_filename, file_path, 'star_overlay', pixels=pixels)
+
+
+        print(f"Saved {filename}{i}.fits with pixel mask and star overlay")
         
 
 
@@ -290,8 +330,16 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
 
 
 
-# Ensure the header keywords conform to FITS standards
-def sanitize_header(header):
+def sanitizeHeader(header):
+    """
+    Ensure the header keywords conform to FITS standards.
+
+    Parameters:
+    header (dict): The header to sanitize.
+
+    Returns:
+    dict: The sanitized header.
+    """
     sanitized_header = {}
     for key, value in header.items():
         if len(key) > 8:
@@ -300,9 +348,16 @@ def sanitize_header(header):
     return sanitized_header
 
 
-# Function that takes a wcs object and returns an array of the range of ICRS coordinates in the image
 def getCoordRangeFromPixels(wcs):
+    """
+    Get the range of ICRS coordinates in the image.
 
+    Parameters:
+    wcs (astropy.wcs.WCS): The WCS object of the image.
+
+    Returns:
+    dict: A dictionary containing the coordinates of the corners of the image.
+    """
     x_dim = wcs.pixel_shape[0] # May need to swap x and y dim! (but I think it's right...)
     y_dim = wcs.pixel_shape[1]
 
@@ -317,11 +372,19 @@ def getCoordRangeFromPixels(wcs):
 
 
 
-# Get all the stars in the image
 def getStarsInImage(wcs, catalog_df, coord_range):
+    """
+    Get all the stars in the image.
 
+    Parameters:
+    wcs (astropy.wcs.WCS): The WCS object of the image.
+    catalog_df (pandas.DataFrame): The DataFrame containing the star catalog.
+    coord_range (dict): The dictionary containing the coordinates of the corners of the image.
+
+    Returns:
+    list: A list of stars in the image.
+    """
     # NOTE: X Max and min are reversed for some reason.. orientation of image in coord system...?
-
 
     x_max = coord_range['lower_left'][0]
     x_min = coord_range['lower_right'][0]
@@ -362,13 +425,29 @@ def getStarsInImage(wcs, catalog_df, coord_range):
 
 
 
-# Get a star from the catalog and convert is coords to pixel coords
 def getPixelCoordsFromStar(star, wcs):
+    """
+    Get the pixel coordinates of a star from the catalog.
 
+    Parameters:
+    star (pandas.Series): The Series containing the star data.
+    wcs (astropy.wcs.WCS): The WCS object of the image.
+
+    Returns:
+    tuple: The pixel coordinates of the star.
+    """
     star_coords = star[1]['_2MASS']
 
     def parseStarCoords(coords):
+        """
+        Parse the star coordinates.
 
+        Parameters:
+        coords (str): The star coordinates.
+
+        Returns:
+        str: The parsed star coordinates.
+        """
         if '-' in coords:
 
             rej, dej = coords.split('-')
@@ -383,7 +462,7 @@ def getPixelCoordsFromStar(star, wcs):
 
         # print('COORDS:', rej + ' ' + dej)
 
-        dej = clean_dec_value(dej)  # Clean the declination value
+        dej = cleanDecValue(dej)  # Clean the declination value
 
         return rej + dej
     
@@ -412,19 +491,15 @@ def getPixelCoordsFromStar(star, wcs):
     return pixel_coords
 
 
-def extract_star_catalog(file_path):
+def extractStarCatalog(file_path):
     """
-    Extract the star catalog from the FITS file.
+    Extract the star catalog from a FITS file.
 
     Parameters:
-    ----------
-    file_path : str
-        The path to the FITS file.
+    file_path (str): The path to the FITS file.
 
     Returns:
-    -------
-    catalog : Table
-        The star catalog as an astropy Table.
+    astropy.table.Table: The star catalog.
     """
     with fits.open(file_path) as hdul:
         # Locate the STAR_CATALOG HDU
@@ -442,9 +517,7 @@ def displayRawImage(file_path):
     Display the raw image data from a FITS file.
 
     Parameters:
-    ----------
-    filename : str
-        The path to the FITS file.
+    file_path (str): The path to the FITS file.
     """
     with fits.open(file_path) as hdul:
         image_data = hdul[0].data
@@ -458,14 +531,7 @@ def displayRawImage(file_path):
     plt.show()
 
 def displayRawPixelMask(file_path):
-    """
-    Display the raw image data from a FITS file.
 
-    Parameters:
-    ----------
-    filename : str
-        The path to the FITS file.
-    """
     with fits.open(file_path) as hdul:
             image_hdu = hdul[0]
             wcs = WCS(image_hdu.header)
@@ -482,8 +548,19 @@ def displayRawPixelMask(file_path):
 
 
 
-# Display the image with coords overlaid on top
 def displayImagePlot(file_path):
+    """
+    Display an astronomical image with WCS projection.
+
+    This function reads a FITS file, extracts the image data and WCS (World Coordinate System)
+    information from the header, and displays the image using Matplotlib with WCS projection.
+
+    Parameters:
+    file_path (str): The path to the FITS file to be displayed.
+
+    Returns:
+    None
+    """
 
     with fits.open(file_path) as hdul:
         image_hdu = hdul[0]
@@ -502,10 +579,16 @@ def displayImagePlot(file_path):
 
 
 
-
-# Get the image
 def getImagePlot(file_path):
+    """
+    Generates a plot of an astronomical image with WCS (World Coordinate System) projection.
 
+    Parameters:
+    file_path (str): The path to the FITS file containing the astronomical image.
+
+    Returns:
+    tuple: A tuple containing the matplotlib figure and axis objects.
+    """
     with fits.open(file_path) as hdul:
         image_hdu = hdul[0]
         wcs = WCS(image_hdu.header)
@@ -522,8 +605,16 @@ def getImagePlot(file_path):
         return fig, ax
     
 
-# Get the image
 def extractImageArray(file_path):
+    """
+    Extracts the image array from a FITS file.
+
+    Parameters:
+    file_path (str): The path to the FITS file.
+
+    Returns:
+    numpy.ndarray: The image data array extracted from the FITS file.
+    """
 
     with fits.open(file_path) as hdul:
         image_hdu = hdul[0]
@@ -533,8 +624,16 @@ def extractImageArray(file_path):
         return image
     
 
-# Display the pixel mask
 def displayPixelMaskPlot(file_path):
+    """
+    Displays a plot of the pixel mask from a FITS file with WCS projection.
+
+    Parameters:
+    file_path (str): The path to the FITS file containing the pixel mask data.
+
+    Returns:
+    None
+    """
 
     with fits.open(file_path) as hdul:
         image_hdu = hdul[0]
@@ -554,8 +653,14 @@ def displayPixelMaskPlot(file_path):
         plt.show()
 
 
-# Get the pixel mask
 def getPixelMaskPlot(file_path):
+    """
+    Generates a plot of the pixel mask from a FITS file.
+    Parameters:
+    file_path (str): The path to the FITS file containing the pixel mask.
+    Returns:
+    tuple: A tuple containing the matplotlib figure and axis objects.
+    """
     
 
     with fits.open(file_path) as hdul:
@@ -576,8 +681,14 @@ def getPixelMaskPlot(file_path):
         return fig, ax
     
 
-# Get the pixel mask
 def extractPixelMaskArray(file_path):
+    """
+    Extracts the pixel mask array from a FITS file.
+    Parameters:
+    file_path (str): The path to the FITS file.
+    Returns:
+    numpy.ndarray: The pixel mask array extracted from the FITS file.
+    """
     
 
     with fits.open(file_path) as hdul:
@@ -589,17 +700,27 @@ def extractPixelMaskArray(file_path):
         return pixel_mask
     
 
-# Display the image with the star overlay
 def displayPixelMaskOverlayPlot(file_path, catalog='II/246'):
     """
-    Display the image with the star overlay.
+    Displays a pixel mask overlay plot of stars from a given FITS file and star catalog.
 
     Parameters:
-    ----------
-    file_path : str
-        The path to the FITS file.
-    catalog : Table
-        The star catalog.
+    file_path (str): The path to the FITS file containing the image data.
+    catalog (str, optional): The star catalog identifier. Default is 'II/246'.
+
+    Returns:
+    None
+
+    This function performs the following steps:
+    1. Opens the FITS file and extracts the image data and WCS (World Coordinate System) information.
+    2. Determines the coordinate range from the image pixels.
+    3. Extracts the star catalog data and converts it to a pandas DataFrame.
+    4. Identifies the stars within the image based on the WCS and coordinate range.
+    5. Creates a pixel mask of the stars and overlays it on the image.
+    6. Plots the image with the pixel mask and star positions marked with circles.
+
+    Example usage:
+    displayPixelMaskOverlayPlot('data/star0.fits', catalog='II/246')
     """
 
     with fits.open(file_path) as hdul:
@@ -608,7 +729,7 @@ def displayPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
         coord_range = getCoordRangeFromPixels(wcs)
 
-        catalog = extract_star_catalog(file_path)
+        catalog = extractStarCatalog(file_path)
 
         # Convert the table to a pandas DataFrame for easier manipulation
         catalog_df = catalog.to_pandas()
@@ -629,8 +750,7 @@ def displayPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
         for star in stars_in_image:
             pixel_coords = getPixelCoordsFromStar(star, wcs)
-            # pixel_mask[int(np.round(pixel_coords[0]))][int(np.round(pixel_coords[1]))] = 1
-            # Ensure the pixel coordinates are within bounds
+
             x, y = int(np.round(pixel_coords[0])), int(np.round(pixel_coords[1]))
             if 0 <= x < x_dim and 0 <= y < y_dim:
                 pixel_mask[x][y] = 1
@@ -646,22 +766,21 @@ def displayPixelMaskOverlayPlot(file_path, catalog='II/246'):
         ax.imshow(image_hdu.data, cmap='gray', origin='lower')
         plt.show()
 
-    # Example usage
-    # displayPixelMaskImage('data/star0.fits', catalog)
 
-
-
-# Get the image with the star overlay
 def getPixelMaskOverlayPlot(file_path, catalog='II/246'):
     """
-    Display the image with the star overlay.
+    Generates a plot overlaying a pixel mask of stars on a FITS image.
 
     Parameters:
-    ----------
-    filename : str
-        The path to the FITS file.
-    catalog : Table
-        The star catalog.
+    file_path (str): The path to the FITS file.
+    catalog (str): The star catalog identifier. Default is 'II/246'.
+
+    Returns:
+    tuple: A tuple containing:
+        - fig (matplotlib.figure.Figure): The figure object of the plot.
+        - ax (matplotlib.axes._subplots.AxesSubplot): The axes object of the plot.
+        - stars_in_image (pandas.DataFrame): DataFrame containing the stars in the image.
+        - wcs (astropy.wcs.WCS): The WCS (World Coordinate System) object of the image.
     """
 
     with fits.open(file_path) as hdul:
@@ -670,7 +789,7 @@ def getPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
         coord_range = getCoordRangeFromPixels(wcs)
 
-        catalog = extract_star_catalog(file_path)
+        catalog = extractStarCatalog(file_path)
 
         # Convert the table to a pandas DataFrame for easier manipulation
         catalog_df = catalog.to_pandas()
@@ -709,14 +828,27 @@ def getPixelMaskOverlayPlot(file_path, catalog='II/246'):
 
         return fig, ax, stars_in_image, wcs
 
-    # Example usage
-    # fig, ax = getPixelMaskImage('star0.fits', catalog)
-    # plt.show()
-
-
-
 
 def saveFitsImages(filename, file_path, catalog_type='II/246'):
+    """
+    Save FITS images with WCS projection and overlay star catalog information.
+
+    Parameters:
+    filename (str): The name of the FITS file to be processed.
+    file_path (str): The path where the FITS file is located. If None, defaults to 'data/fits/'.
+    catalog_type (str, optional): The type of star catalog to use for overlay. Default is 'II/246'.
+
+    Returns:
+    None
+
+    This function performs the following steps:
+    1. Opens the FITS file and extracts the primary image data and WCS information.
+    2. Creates a matplotlib figure with three subplots:
+        - The original image.
+        - The pixel mask (if available).
+        - The original image with an overlay of cataloged stars.
+    3. Saves the combined image as a PNG file in the specified file path.
+    """
 
     plt.style.use(astropy_mpl_style)
 
@@ -754,7 +886,7 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
 
         # Get the third image (Pixel Mask Overlay)
         coord_range = getCoordRangeFromPixels(wcs)
-        catalog = extract_star_catalog(file_path + filename)
+        catalog = extractStarCatalog(file_path + filename)
         catalog_df = catalog.to_pandas()
         stars_in_image = getStarsInImage(wcs, catalog_df, coord_range)
         print("Number of cataloged stars in image: ", len(stars_in_image))
@@ -781,11 +913,29 @@ def saveFitsImages(filename, file_path, catalog_type='II/246'):
 
 
 def getFitsContents(file_path):
+    """
+    Opens a FITS file and returns its content information.
+
+    Parameters:
+    file_path (str): The path to the FITS file.
+
+    Returns:
+    None: Prints the information of the FITS file content.
+    """
     FITS_content = fits.open(file_path)
     return FITS_content.info()
 
 
 def getFitsHeader(file_path):
+        """
+        Extracts the header from a FITS file.
+
+        Parameters:
+        file_path (str): The path to the FITS file.
+
+        Returns:
+        dict: A dictionary containing the header information from the FITS file.
+        """
         with fits.open(file_path) as hdul:
             header = hdul[0].header
             header = dict(header)
@@ -795,15 +945,13 @@ def getFitsHeader(file_path):
 
 def getStarTable(file_path):
     """
-    Print the star data from the FITS file.
-    Explanation of start data found in [`star_data_explained.md`](docs/star_data_explained.md)
-    
-    Parameters:
-    ----------
-    file_path : str
-        The path to the FITS file.
+    Extracts the star catalog table from a FITS file.
 
-        
+    Parameters:
+    file_path (str): The path to the FITS file containing the star catalog.
+
+    Returns:
+    astropy.table.Table: A table containing the star catalog data.
     """
     with fits.open(file_path) as hdul:
         star_catalog = hdul['STAR_CATALOG'].data
@@ -813,29 +961,22 @@ def getStarTable(file_path):
             
 
 
-def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
+def importDataset(dataset_path='data/fits/data/'):
     """
-    Import the dataset from the specified folder and extract the image and mask arrays.
+    Imports a dataset of FITS files from the specified directory, extracting image arrays, pixel masks, WCS data, 
+    and star data from each file.
 
-    Parameters:
-    ----------
-    dataset_path : str
-        The path to the folder containing the dataset.
-    dataset_name : str
-        The name of the dataset.('data' for testing, or 'validate' for validation/predictions)
+    Args:
+        dataset_path (str): The path to the directory containing the FITS files. Default is 'data/fits/data/'.
 
     Returns:
-    -------
-    images : list
-        A list of the image arrays.
-    masks : list
-        A list of the mask arrays.
-    star_data : list
-        A list of the star data.
-    fits_files : list
-        A list of the FITS files in the dataset folder.
+        tuple: A tuple containing the following elements:
+            - images (list): A list of image arrays extracted from the FITS files.
+            - masks (list): A list of pixel mask arrays extracted from the FITS files.
+            - stars_in_image (list): A list of star data for each image, extracted from the FITS files.
+            - wcs_data (list): A list of WCS (World Coordinate System) data extracted from the FITS files.
+            - fits_files (list): A list of the FITS files found in the dataset directory.
     """
-
     # Create images and masks arrays lists
     images = []
     masks = []
@@ -855,14 +996,33 @@ def importDataset(dataset_path = 'data/fits/', dataset_name = 'data'):
     for file in os.listdir(file_path):
         if file.endswith('.png'):
             os.remove(file_path + file)
-        if file.startswith(dataset_name) and file.endswith('.fits'):
+        if file.endswith('.fits'):
             fits_files.append(file)
             images.append(extractImageArray(file_path + file))
             masks.append(extractPixelMaskArray(file_path + file))
             wcs = wcs_data.append(WCS(fits.open(file_path + file)[0].header))
-            stars_in_image.append(getStarsInImage(wcs, extract_star_catalog(file_path + file).to_pandas(), getCoordRangeFromPixels(WCS(fits.open(file_path + file)[0].header))))
-
+            wcs_data.append(WCS(fits.open(file_path + file)[0].header))
+            stars_in_image.append(getStarsInImage(wcs_data[-1], extractStarCatalog(file_path + file).to_pandas(), getCoordRangeFromPixels(wcs_data[-1])))
 
             print(file + ' added to dataset')
 
     return images, masks, stars_in_image, wcs_data, fits_files
+
+# Extract stars from fits file
+def extractStarsFromFits(fits_file):
+    """
+    Extracts star data from a FITS file.
+
+    This function opens a FITS file, extracts the World Coordinate System (WCS) information
+    from the header, and retrieves star data within the image using the WCS and a star catalog.
+
+    Args:
+        fits_file (str): The path to the FITS file.
+
+    Returns:
+        pandas.DataFrame: A DataFrame containing the star data extracted from the FITS file.
+    """
+    with fits.open(fits_file) as hdul:
+        wcs = WCS(hdul[0].header)
+        stars = getStarsInImage(wcs, extractStarCatalog(fits_file).to_pandas(), getCoordRangeFromPixels(WCS(fits.open(fits_file)[0].header)))
+    return stars

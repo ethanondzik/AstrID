@@ -20,7 +20,7 @@ This document outlines the key design decisions made during the development of t
 ## Image Resolution
 
 - **Decision**: Increase the resolution of images obtained through SkyView by specifying a higher pixel size.
-- **Implementation**: Use the `pixels` parameter in the `SkyView.get_images` function to set the image size to 2000x2000 pixels, increasing the resolution.
+- **Implementation**: Use the `pixels` parameter in the `SkyView.get_images` function to set the image size to 1024x1024 pixels, increasing the resolution.
 
 ## Plotting Improvements
 

@@ -163,7 +163,7 @@ def createCircularMask(h, w, center=None, radius=None):
     return mask
 
 
-def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixels=512):
+def createStarDataset(catalog_type='II/246', iterations=1, file_path='data/fits/data/', filename='data', pixels=512):
     """
     Create a dataset of star images and pixel masks.
 
@@ -181,7 +181,7 @@ def createStarDataset(catalog_type='II/246', iterations=1, filename='data', pixe
     for i in range(iterations):
 
         filename_str = filename + str(i)
-        file_path = 'data/fits/' + filename_str + '.fits'
+        file_path = file_path + filename_str + '.fits'
         attempts = 0
 
         while attempts < 100:

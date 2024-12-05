@@ -1,102 +1,143 @@
-from dash import Dash, dcc, html, Input, Output, callback
+import os
+import re
 import plotly.express as px
-import pandas as pd
-import numpy as np
+import plotly.graph_objects as go
+from dash import Dash, dcc, html, Input, Output, callback, no_update
 import json
+import numpy as np
+import pandas as pd
 from astropy.io import fits
 
-# Load the FITS file and extract the pixel mask
-fits_file = '../resource/data0.fits'
-hdul = fits.open(fits_file)
-image_data = hdul[0].data  # Image is in the primary HDU
-hdul.close()
 
-# Create a binary mask (adjust the threshold as needed)
-threshold = np.mean(image_data) + 2 * np.std(image_data)  # Example threshold
-pixel_mask = (image_data > threshold).astype(int)
+#----------------FITS functions-----------------------
 
-# Convert pixel mask to a Panda DF
-rows, cols = np.where(pixel_mask == 1)  # Gets the white pixels' coords
-df = pd.DataFrame({
-    "x": cols,
-    "y": rows,  
-    "category": "Pixel Mask"  # Category for toggling
-})
+def load_fits_image(fits_file):
 
-"""
-    Need the same process as above but for the corresponding predicitons.
+    hdul = fits.open(fits_file)
+    image_data = hdul[0].data  # Image is in the primary HDU
+    hdul.close()
+    return image_data
 
-    - Change coordinates to match fits?
-    - Overlay the image of the space under the graph?
-    - Fix the x, y scale to change the look?
+def normalize_image(image_data):
 
-"""
+    normalized_image = (image_data - np.min(image_data)) / (np.max(image_data) - np.min(image_data)) * 255
+    return normalized_image.astype(np.uint8)
 
-# Init the dash app
-app = Dash(__name__)
+def create_pixel_mask(image_data, threshold_factor=4): #4 makes it less crowded
 
-# Scatter plot
-fig = px.scatter(df, x="x", y="y", color="category", title="Pixel Mask Scatter Plot")
-fig.update_layout(clickmode='event+select')
-fig.update_traces(marker_size=5)
+    threshold = np.mean(image_data) + threshold_factor * np.std(image_data)
+    pixel_mask = (image_data > threshold).astype(int)
+    return pixel_mask
 
-# Layout
-app.layout = html.Div([
-    dcc.Graph(
-        id='pixel-mask-scatter',
-        figure=fig
-    ),
-    html.Div(className='row', children=[
-        html.Div([
-            dcc.Markdown("""
-                **Hover Data**
+def pixel_mask_to_dataframe(pixel_mask):
 
-                Mouse over points in the graph.
-            """),
-            html.Pre(id='hover-data', style={'border': 'thin lightgrey solid', 'overflowX': 'scroll'})
-        ], className='three columns'),
-
-        html.Div([
-            dcc.Markdown("""
-                **Click Data**
-
-                Click on points in the graph.
-            """),
-            html.Pre(id='click-data', style={'border': 'thin lightgrey solid', 'overflowX': 'scroll'}),
-        ], className='three columns'),
-
-        html.Div([
-            dcc.Markdown("""
-                **Selection Data**
-
-                Use the lasso or rectangle tool to select points in the graph.
-            """),
-            html.Pre(id='selected-data', style={'border': 'thin lightgrey solid', 'overflowX': 'scroll'}),
-        ], className='three columns'),
-    ])
-])
-
-# Callbacks - display interactions
-@callback(
-    Output('hover-data', 'children'),
-    Input('pixel-mask-scatter', 'hoverData'))
-def display_hover_data(hoverData):
-    return json.dumps(hoverData, indent=2)
+    rows, cols = np.where(pixel_mask == 1)  # Get the white pixel coords
+    return pd.DataFrame({"x": cols, "y": rows, "Category": "Pixel Mask"})
 
 
-@callback(
-    Output('click-data', 'children'),
-    Input('pixel-mask-scatter', 'clickData'))
-def display_click_data(clickData):
-    return json.dumps(clickData, indent=2)
+#----------------image functions-----------------------
 
+def create_image_plot(normalized_image):
 
-@callback(
-    Output('selected-data', 'children'),
-    Input('pixel-mask-scatter', 'selectedData'))
-def display_selected_data(selectedData):
-    return json.dumps(selectedData, indent=2)
+    fig = px.imshow(normalized_image, color_continuous_scale="gray")
+    fig.update_layout(dragmode="drawrect", title="FITS Image")
+    return fig
 
+def add_pixel_mask_to_plot(fig, df):
 
-if __name__ == '__main__':
+    fig.add_trace(go.Scatter(
+        x=df["x"], y=df["y"],
+        mode="markers",
+        marker=dict(
+            size=4,
+            symbol="star",
+            color="DarkSlateBlue",
+            opacity=0.5
+        ),
+        name="Pixel Mask"
+    ))
+
+#----------------Dash app functions-----------------------
+
+def create_dash_app(fig, available_fits_files):
+
+    app = Dash(__name__)
+
+    app.layout = html.Div(
+        [
+            html.H3("Choose a FITS file"),
+            dcc.Dropdown(
+                id="fits-file-dropdown",
+                options=[{"label": file, "value": file} for file in available_fits_files],
+                value=available_fits_files[0],  # Defaults to the first file
+                style={"width": "50%"}
+            ),
+            html.H3("Drag and draw rectangle annotations"),
+            dcc.Graph(id="graph-picture", figure=fig),
+            dcc.Markdown("Characteristics of shapes"),
+            html.Pre(id="annotations-data"),
+        ]
+    )
+
+    # The callback is what updates the image and pixel mask when a new fits file is selected
+    @callback(
+        Output("graph-picture", "figure"),
+        Input("fits-file-dropdown", "value"),
+        prevent_initial_call=True,
+    )
+    def update_image(selected_file):
+        
+        # Load/process the selected FITS file
+        fits_file = os.path.join('data', 'fits', selected_file)
+        image_data = load_fits_image(fits_file)
+        normalized_image = normalize_image(image_data)
+        pixel_mask = create_pixel_mask(image_data)
+        df = pixel_mask_to_dataframe(pixel_mask)
+
+        # Create/update the plot
+        fig = create_image_plot(normalized_image)
+        add_pixel_mask_to_plot(fig, df)
+        return fig
+
+    @callback(
+        Output("annotations-data", "children"),
+        Input("graph-picture", "relayoutData"),
+        prevent_initial_call=True,
+    )
+    def on_new_annotation(relayout_data): #inherited this from dash app API, not sure if keeping it
+
+        if "shapes" in relayout_data:
+            return json.dumps(relayout_data["shapes"], indent=2)
+        else:
+            return no_update
+
+    return app
+
+#----------------Main-----------------------
+
+def main():
+    
+    # List FITS files in the 'data/fits' directory
+    fits_dir = os.path.join('data', 'fits')
+    available_fits_files = [file for file in os.listdir(fits_dir) if file.endswith(".fits") and file.startswith("data")]
+
+    # Sort files numerically based on the number in the filename
+    available_fits_files.sort(key=lambda x: int(re.findall(r'\d+', x)[0]))
+
+    # Process the default FITS file
+    fits_file = os.path.join(fits_dir, available_fits_files[0])
+    image_data = load_fits_image(fits_file)
+    normalized_image = normalize_image(image_data)
+    pixel_mask = create_pixel_mask(image_data)
+    df = pixel_mask_to_dataframe(pixel_mask)
+
+    # Image plot and add pixel mask
+    fig = create_image_plot(normalized_image)
+    add_pixel_mask_to_plot(fig, df)
+
+    # Run the Dash app
+    app = create_dash_app(fig, available_fits_files)
     app.run(debug=True)
+
+if __name__ == "__main__":
+    main()

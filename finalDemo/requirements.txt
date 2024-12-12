@@ -1,5 +1,8 @@
 numpy
+pandas
 matplotlib
+opencv-python
 astropy
+astroquery
 keras==2.13.1
 tensorflow==2.13.1
